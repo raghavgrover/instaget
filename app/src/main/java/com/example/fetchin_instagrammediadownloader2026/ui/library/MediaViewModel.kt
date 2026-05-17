@@ -56,7 +56,7 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
             groups.getOrPut(key) { mutableListOf() }.add(item)
         }
         return groups.values.map { group ->
-            LibraryItem(mediaItem = group.first(), count = group.size)
+            LibraryItem(mediaItem = group.minByOrNull { it.downloadedAt } ?: group.first(), count = group.size)
         }
     }
 }

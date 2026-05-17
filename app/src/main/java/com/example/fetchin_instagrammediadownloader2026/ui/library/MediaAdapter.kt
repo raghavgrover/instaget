@@ -37,7 +37,7 @@ class MediaAdapter(
                 .into(binding.ivThumbnail)
 
             binding.ivPlayOverlay.visibility =
-                if (item.mediaType == "VIDEO") View.VISIBLE else View.GONE
+                if (item.mediaType == "VIDEO" && libraryItem.count <= 1) View.VISIBLE else View.GONE
 
             if (libraryItem.count > 1) {
                 binding.carouselBadge.visibility = View.VISIBLE

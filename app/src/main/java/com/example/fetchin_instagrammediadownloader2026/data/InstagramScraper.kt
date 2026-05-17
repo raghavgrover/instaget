@@ -175,7 +175,7 @@ class InstagramScraper {
                 val root = JSONObject(body)
                 val items = root.optJSONArray("items") ?: continue
                 if (items.length() == 0) continue
-                val info = parseItem(items.getJSONObject(0))
+                val info = flattenStoryResult(parseItem(items.getJSONObject(0)))
                 if (info.mediaType == "video" && info.videoUrl == null) {
                     Log.w(TAG, "API returned video type but no URL, trying next")
                     continue
@@ -197,8 +197,10 @@ class InstagramScraper {
                         Log.w(TAG, "doc_id=$docId returned video with no URL, continuing")
                         continue
                     }
-                    Log.d(TAG, "Story via GraphQL doc_id=$docId: type=${result.mediaType}")
-                    return Result.success(result.copy(shortcode = shortcode))
+                    // Story links refer to a single frame — never return a carousel
+                    val single = flattenStoryResult(result)
+                    Log.d(TAG, "Story via GraphQL doc_id=$docId: type=${single.mediaType}")
+                    return Result.success(single.copy(shortcode = shortcode))
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Story GraphQL doc_id=$docId failed: ${e.message}")
@@ -210,17 +212,29 @@ class InstagramScraper {
         for (docId in DOC_IDS) {
             try {
                 val result = queryGraphQL(shortcode, docId, csrfToken) ?: continue
-                if (result.mediaType == "video") {
-                    // We confirmed it's a video but can't get the URL without auth
+                val single = flattenStoryResult(result)
+                if (single.mediaType == "video") {
                     return Result.failure(Exception(
                         "This story is a video but Instagram requires a logged-in session to download it. Only picture stories can be downloaded anonymously."
                     ))
                 }
-                return Result.success(result.copy(shortcode = shortcode))
+                return Result.success(single.copy(shortcode = shortcode))
             } catch (_: Exception) {}
         }
 
         return Result.failure(Exception("Could not fetch story — it may have expired (stories last 24 hours)"))
+    }
+
+    private fun flattenStoryResult(info: MediaInfo): MediaInfo {
+        if (info.mediaType != "carousel" || info.carouselItems.isEmpty()) return info
+        val first = info.carouselItems.first()
+        return info.copy(
+            mediaType = first.mediaType,
+            videoUrl = first.videoUrl,
+            imageUrl = first.imageUrl,
+            thumbnailUrl = first.imageUrl,
+            carouselItems = emptyList()
+        )
     }
 
     private fun queryGraphQL(shortcode: String, docId: String, csrfToken: String?): MediaInfo? {
