@@ -134,6 +134,11 @@ class HomeFragment : Fragment() {
                 }
             }
             info.videoUrl != null -> listOf(Triple(info.videoUrl, "InstaGet_${timestamp}.mp4", "VIDEO"))
+            info.mediaType == "video" -> {
+                // Video identified but URL missing — don't silently download the thumbnail
+                Snackbar.make(binding.root, "Could not get video URL — Instagram may require login for this content", Snackbar.LENGTH_LONG).show()
+                return
+            }
             info.imageUrl != null -> listOf(Triple(info.imageUrl, "InstaGet_${timestamp}.jpg", "IMAGE"))
             else -> {
                 Snackbar.make(binding.root, "No downloadable URL found", Snackbar.LENGTH_LONG).show()

@@ -39,8 +39,19 @@ class InstagramScraper {
         )
         private val SHORTCODE_REGEX =
             Regex("""instagram\.com/(?:[^/]+/)?(?:reel|p|tv)/([A-Za-z0-9_-]+)""")
+        // stories/username/123456789/
+        private val STORY_REGEX =
+            Regex("""instagram\.com/stories/[^/?]+/(\d+)""")
+        private const val IG_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
         private const val USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        // Mobile UA required for i.instagram.com private API
+        private const val MOBILE_USER_AGENT =
+            "Instagram/275.0.0.27.98 (iPhone; iOS 17.4.1; en_US; en-US; scale=3.00; 1125x2436; 654878038)"
+        private const val STORY_API_URL_WEB = "https://www.instagram.com/api/v1/media/%s/info/"
+        private const val STORY_API_URL_MOBILE = "https://i.instagram.com/api/v1/media/%s/info/"
+        private val STORY_EXTRA_DOC_IDS = listOf("3802882259801936", "4428157403856178", "13748943738489442")
     }
 
     @Volatile private var cachedCsrfToken: String? = null
@@ -51,8 +62,22 @@ class InstagramScraper {
         .followRedirects(true)
         .build()
 
-    fun extractShortcode(url: String): String? =
-        SHORTCODE_REGEX.find(url)?.groupValues?.get(1)
+    fun extractShortcode(url: String): String? {
+        SHORTCODE_REGEX.find(url)?.groupValues?.get(1)?.let { return it }
+        // Story URLs encode the media as a numeric ID; convert to shortcode
+        val mediaId = STORY_REGEX.find(url)?.groupValues?.get(1) ?: return null
+        return mediaIdToShortcode(mediaId)
+    }
+
+    private fun mediaIdToShortcode(mediaId: String): String {
+        var n = mediaId.toLong()
+        var code = ""
+        while (n > 0) {
+            code = IG_ALPHABET[(n % 64).toInt()] + code
+            n /= 64
+        }
+        return code
+    }
 
     private fun fetchCsrfToken(): String? {
         cachedCsrfToken?.let { return it }
@@ -90,6 +115,11 @@ class InstagramScraper {
     }
 
     suspend fun fetchMediaInfo(url: String): Result<MediaInfo> = withContext(Dispatchers.IO) {
+        val storyMediaId = STORY_REGEX.find(url)?.groupValues?.get(1)
+        if (storyMediaId != null) {
+            return@withContext fetchStoryInfo(storyMediaId)
+        }
+
         val shortcode = extractShortcode(url)
             ?: return@withContext Result.failure(IllegalArgumentException("Invalid Instagram URL — could not extract shortcode"))
 
@@ -115,6 +145,82 @@ class InstagramScraper {
         }
 
         Result.failure(Exception("Could not fetch media — post may be private or Instagram changed their API"))
+    }
+
+    private fun fetchStoryInfo(mediaId: String): Result<MediaInfo> {
+        Log.d(TAG, "Fetching story, mediaId=$mediaId")
+        val shortcode = mediaIdToShortcode(mediaId)
+        val csrfToken = fetchCsrfToken()
+
+        // 1. Try private API endpoints (www first — same domain as CSRF, then i.instagram.com)
+        for (apiUrl in listOf(STORY_API_URL_WEB.format(mediaId), STORY_API_URL_MOBILE.format(mediaId))) {
+            try {
+                val reqBuilder = Request.Builder()
+                    .url(apiUrl)
+                    .header("User-Agent", MOBILE_USER_AGENT)
+                    .header("X-IG-App-ID", "936619743392459")
+                    .header("Accept", "application/json, text/plain, */*")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                if (!csrfToken.isNullOrBlank()) {
+                    reqBuilder.header("X-CSRFToken", csrfToken)
+                        .header("Cookie", "csrftoken=$csrfToken")
+                }
+                val body = client.newCall(reqBuilder.build()).execute().use { response ->
+                    Log.d(TAG, "Story API $apiUrl → HTTP ${response.code}")
+                    if (!response.isSuccessful) return@use null
+                    val text = response.body?.string() ?: return@use null
+                    if (text.trimStart().startsWith('<')) null else text  // reject HTML
+                } ?: continue
+
+                val root = JSONObject(body)
+                val items = root.optJSONArray("items") ?: continue
+                if (items.length() == 0) continue
+                val info = parseItem(items.getJSONObject(0))
+                if (info.mediaType == "video" && info.videoUrl == null) {
+                    Log.w(TAG, "API returned video type but no URL, trying next")
+                    continue
+                }
+                Log.d(TAG, "Story via API: type=${info.mediaType} hasVideo=${info.videoUrl != null}")
+                return Result.success(info.copy(shortcode = shortcode))
+            } catch (e: Exception) {
+                Log.w(TAG, "Story API attempt failed: ${e.message}")
+            }
+        }
+
+        // 2. Fall back to GraphQL with all doc_ids (standard + story-specific extras)
+        val allDocIds = DOC_IDS + STORY_EXTRA_DOC_IDS
+        for (docId in allDocIds) {
+            try {
+                val result = queryGraphQL(shortcode, docId, csrfToken)
+                if (result != null) {
+                    if (result.mediaType == "video" && result.videoUrl == null) {
+                        Log.w(TAG, "doc_id=$docId returned video with no URL, continuing")
+                        continue
+                    }
+                    Log.d(TAG, "Story via GraphQL doc_id=$docId: type=${result.mediaType}")
+                    return Result.success(result.copy(shortcode = shortcode))
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Story GraphQL doc_id=$docId failed: ${e.message}")
+            }
+        }
+
+        // 3. Last resort — if we have image data for a known video story, report clearly
+        // Try one final GraphQL pass accepting image-only result (story picture)
+        for (docId in DOC_IDS) {
+            try {
+                val result = queryGraphQL(shortcode, docId, csrfToken) ?: continue
+                if (result.mediaType == "video") {
+                    // We confirmed it's a video but can't get the URL without auth
+                    return Result.failure(Exception(
+                        "This story is a video but Instagram requires a logged-in session to download it. Only picture stories can be downloaded anonymously."
+                    ))
+                }
+                return Result.success(result.copy(shortcode = shortcode))
+            } catch (_: Exception) {}
+        }
+
+        return Result.failure(Exception("Could not fetch story — it may have expired (stories last 24 hours)"))
     }
 
     private fun queryGraphQL(shortcode: String, docId: String, csrfToken: String?): MediaInfo? {
@@ -181,10 +287,13 @@ class InstagramScraper {
             ?.optJSONObject("node")
             ?.optString("text", "") ?: ""
 
-        val isVideo = typename == "XDTGraphVideo" || media.optBoolean("is_video", false)
+        Log.d(TAG, "xdt typename=$typename is_video=${media.optBoolean("is_video")} has_video_url=${media.has("video_url")}")
+
+        // Extract video_url first — its presence is the most reliable video indicator
+        val videoUrl = media.optString("video_url").takeIf { it.isNotBlank() }
+        val isVideo = videoUrl != null || typename == "XDTGraphVideo" || media.optBoolean("is_video", false)
         val isCarousel = typename == "XDTGraphSidecar"
 
-        val videoUrl = if (isVideo) media.optString("video_url").takeIf { it.isNotBlank() } else null
         val imageUrl = media.optString("display_url").takeIf { it.isNotBlank() }
             ?: media.optString("thumbnail_src").takeIf { it.isNotBlank() }
 
@@ -199,8 +308,8 @@ class InstagramScraper {
                 ?.optJSONArray("edges") ?: return MediaInfo("", username, caption, mediaType, videoUrl, imageUrl, imageUrl)
             (0 until edges.length()).map { i ->
                 val node = edges.getJSONObject(i).getJSONObject("node")
-                val cIsVideo = node.optBoolean("is_video", false)
-                val cVideo = if (cIsVideo) node.optString("video_url").takeIf { it.isNotBlank() } else null
+                val cVideo = node.optString("video_url").takeIf { it.isNotBlank() }
+                val cIsVideo = cVideo != null || node.optBoolean("is_video", false)
                 val cImage = node.optString("display_url").takeIf { it.isNotBlank() }
                 CarouselItem(if (cIsVideo) "video" else "image", cVideo, cImage)
             }
@@ -214,16 +323,19 @@ class InstagramScraper {
         val username = item.optJSONObject("user")?.optString("username", "") ?: ""
         val caption = item.optJSONObject("caption")?.optString("text", "") ?: ""
 
-        val mediaType = when (mediaTypeCode) {
-            2 -> "video"
-            8 -> "carousel"
-            else -> "image"
-        }
-
+        // Extract video URL first — its presence overrides the media_type code
         val videoUrl = item.optJSONArray("video_versions")
             ?.optJSONObject(0)
             ?.optString("url")
             ?.takeIf { it.isNotBlank() }
+
+        val mediaType = when {
+            mediaTypeCode == 8 -> "carousel"
+            videoUrl != null || mediaTypeCode == 2 -> "video"
+            else -> "image"
+        }
+
+        Log.d(TAG, "parseItem media_type=$mediaTypeCode resolved=$mediaType hasVideoUrl=${videoUrl != null}")
 
         val imageUrl = item.optJSONObject("image_versions2")
             ?.optJSONArray("candidates")
@@ -237,9 +349,9 @@ class InstagramScraper {
             )
             (0 until arr.length()).map { i ->
                 val ci = arr.getJSONObject(i)
-                val cType = if (ci.optInt("media_type") == 2) "video" else "image"
                 val cVideo = ci.optJSONArray("video_versions")
                     ?.optJSONObject(0)?.optString("url")?.takeIf { it.isNotBlank() }
+                val cType = if (cVideo != null || ci.optInt("media_type") == 2) "video" else "image"
                 val cImage = ci.optJSONObject("image_versions2")
                     ?.optJSONArray("candidates")?.optJSONObject(0)
                     ?.optString("url")?.takeIf { it.isNotBlank() }
