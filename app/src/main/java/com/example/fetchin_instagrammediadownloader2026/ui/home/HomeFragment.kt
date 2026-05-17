@@ -14,10 +14,14 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import java.util.concurrent.TimeUnit
 import com.example.fetchin_instagrammediadownloader2026.data.MediaInfo
 import com.example.fetchin_instagrammediadownloader2026.databinding.FragmentHomeBinding
 import com.example.fetchin_instagrammediadownloader2026.worker.DownloadWorker
@@ -153,9 +157,14 @@ class HomeFragment : Fragment() {
         binding.tvStatus.text = "Downloading…"
 
         val workManager = WorkManager.getInstance(requireContext())
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
 
         itemsToDownload.forEachIndexed { index, (url, filename, mediaType) ->
             val request = OneTimeWorkRequestBuilder<DownloadWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
                 .setInputData(
                     workDataOf(
                         DownloadWorker.KEY_MEDIA_URL to url,

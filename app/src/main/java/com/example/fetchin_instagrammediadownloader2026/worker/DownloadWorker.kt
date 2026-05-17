@@ -1,15 +1,24 @@
 package com.example.fetchin_instagrammediadownloader2026.worker
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import kotlinx.coroutines.CancellationException
+import java.net.UnknownHostException
+import com.example.fetchin_instagrammediadownloader2026.R
 import com.example.fetchin_instagrammediadownloader2026.data.db.AppDatabase
 import com.example.fetchin_instagrammediadownloader2026.data.db.MediaItem
 import okhttp3.OkHttpClient
@@ -32,7 +41,9 @@ class DownloadWorker(
         const val KEY_ORIGINAL_URL = "originalUrl"
         const val KEY_MEDIA_TYPE = "mediaType"
         const val KEY_THUMBNAIL_URL = "thumbnailUrl"
+        const val KEY_NOTIFY_ON_COMPLETE = "notifyOnComplete"
         private const val TAG = "DownloadWorker"
+        private const val CHANNEL_ID = "fetchin_downloads"
     }
 
     private val client = OkHttpClient.Builder()
@@ -94,10 +105,59 @@ class DownloadWorker(
                 )
             )
 
+            val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
+            if (notify) postNotification("FetchIn: Download complete", filename)
+
             Result.success(workDataOf(KEY_SAVED_URI to uriString))
+        } catch (e: CancellationException) {
+            // Worker was stopped by the system — re-throw so WorkManager handles it cleanly
+            throw e
+        } catch (e: UnknownHostException) {
+            Log.w(TAG, "DNS failure (attempt ${runAttemptCount + 1}): ${e.message}")
+            if (runAttemptCount >= 2) {
+                val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
+                if (notify) postNotification("FetchIn: Download failed", "Network error — check your connection")
+                Result.failure(workDataOf("error" to "Network error"))
+            } else {
+                Result.retry()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Download error", e)
+            val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
+            if (notify) postNotification("FetchIn: Download failed", e.message ?: "Unknown error")
             Result.failure(workDataOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
+
+    private fun postNotification(title: String, text: String) {
+        val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (manager.getNotificationChannel(CHANNEL_ID) == null) {
+                manager.createNotificationChannel(
+                    NotificationChannel(CHANNEL_ID, "Downloads", NotificationManager.IMPORTANCE_DEFAULT)
+                )
+            }
+        }
+
+        val launchIntent = Intent(applicationContext, com.example.fetchin_instagrammediadownloader2026.MainActivity::class.java).apply {
+            putExtra("navigate_to", "library")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            applicationContext, 0, launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_download_arrow)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
+            manager.notify(System.currentTimeMillis().toInt(), notification)
         }
     }
 
