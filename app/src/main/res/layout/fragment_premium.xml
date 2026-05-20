@@ -17,7 +17,8 @@
             android:background="@drawable/bg_premium_gradient"
             android:gravity="center"
             android:orientation="vertical"
-            android:padding="32dp">
+            android:paddingHorizontal="32dp"
+            android:paddingVertical="26dp">
 
             <ImageView
                 android:layout_width="48dp"
@@ -33,15 +34,6 @@
                 android:textColor="@color/white"
                 android:textSize="24sp"
                 android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/label_premium_subtitle"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:gravity="center" />
 
         </LinearLayout>
 
@@ -79,34 +71,10 @@
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹0"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="28sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="@string/label_forever"
-                        android:textColor="@color/textSecondary"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
                 <include layout="@layout/view_feature_check" android:id="@+id/featureFree1"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="12dp" />
                 <include layout="@layout/view_feature_check" android:id="@+id/featureFree2"
-                    android:layout_width="match_parent" android:layout_height="wrap_content" />
-                <include layout="@layout/view_feature_cross" android:id="@+id/featureFree3"
                     android:layout_width="match_parent" android:layout_height="wrap_content" />
 
                 <com.google.android.material.button.MaterialButton
@@ -174,12 +142,11 @@
                             android:textSize="14sp" />
                     </LinearLayout>
 
+
                     <include layout="@layout/view_feature_check" android:id="@+id/featureMonthly1"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:layout_marginTop="12dp" />
                     <include layout="@layout/view_feature_check" android:id="@+id/featureMonthly2"
-                        android:layout_width="match_parent" android:layout_height="wrap_content" />
-                    <include layout="@layout/view_feature_check" android:id="@+id/featureMonthly3"
                         android:layout_width="match_parent" android:layout_height="wrap_content" />
 
                     <com.google.android.material.button.MaterialButton
@@ -263,12 +230,11 @@
                             android:textSize="14sp" />
                     </LinearLayout>
 
+
                     <include layout="@layout/view_feature_check" android:id="@+id/featureAnnual1"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:layout_marginTop="12dp" />
                     <include layout="@layout/view_feature_check" android:id="@+id/featureAnnual2"
-                        android:layout_width="match_parent" android:layout_height="wrap_content" />
-                    <include layout="@layout/view_feature_check" android:id="@+id/featureAnnual3"
                         android:layout_width="match_parent" android:layout_height="wrap_content" />
 
                     <com.google.android.material.button.MaterialButton

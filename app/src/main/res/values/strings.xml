@@ -35,7 +35,7 @@
     <string name="label_no_active_subscription">No active subscription found</string>
     <string name="label_go_premium">Go Premium</string>
     <string name="label_premium_subtitle">Unlimited downloads, carousels &amp; more</string>
-    <string name="label_free_plan">Free</string>
+    <string name="label_free_plan">Trial</string>
     <string name="label_monthly_plan">Monthly</string>
     <string name="label_annual_plan">Annual</string>
     <string name="label_popular">Popular</string>

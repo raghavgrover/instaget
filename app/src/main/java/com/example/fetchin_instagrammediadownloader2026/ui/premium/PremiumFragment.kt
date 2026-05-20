@@ -84,17 +84,14 @@ class PremiumFragment : Fragment() {
     }
 
     private fun setupFeatureTexts() {
-        binding.featureFree1.tvFeatureText.text = "5 lifetime downloads"
-        binding.featureFree2.tvFeatureText.text = "Photos, Videos, Reels, Stories"
-        binding.featureFree3.tvFeatureText.text = "Carousel / batch download"
+        binding.featureFree1.tvFeatureText.text = "10 lifetime downloads"
+        binding.featureFree2.tvFeatureText.text = "Photos, Videos, Reels, Stories & Carousel"
 
         binding.featureMonthly1.tvFeatureText.text = "Unlimited downloads"
-        binding.featureMonthly2.tvFeatureText.text = "Photos, Videos, Reels, Stories"
-        binding.featureMonthly3.tvFeatureText.text = "Carousel / batch download"
+        binding.featureMonthly2.tvFeatureText.text = "Photos, Videos, Reels, Stories & Carousel"
 
         binding.featureAnnual1.tvFeatureText.text = "Unlimited downloads"
-        binding.featureAnnual2.tvFeatureText.text = "Photos, Videos, Reels, Stories"
-        binding.featureAnnual3.tvFeatureText.text = "Carousel / batch download"
+        binding.featureAnnual2.tvFeatureText.text = "Photos, Videos, Reels, Stories & Carousel"
     }
 
     private fun renderSubscriptionState(state: SubscriptionState) {
