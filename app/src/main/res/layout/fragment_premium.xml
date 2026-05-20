@@ -16,23 +16,23 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_premium_gradient"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingHorizontal="32dp"
-            android:paddingVertical="26dp">
+            android:orientation="horizontal"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="16dp">
 
             <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_crown"
                 android:contentDescription="@null" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginStart="10dp"
                 android:text="@string/label_go_premium"
                 android:textColor="@color/white"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
