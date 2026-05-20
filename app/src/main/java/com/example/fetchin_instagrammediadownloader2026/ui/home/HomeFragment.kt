@@ -172,7 +172,9 @@ class HomeFragment : Fragment() {
                         DownloadWorker.KEY_SHORTCODE to info.shortcode,
                         DownloadWorker.KEY_ORIGINAL_URL to originalUrl,
                         DownloadWorker.KEY_MEDIA_TYPE to mediaType,
-                        DownloadWorker.KEY_THUMBNAIL_URL to (info.thumbnailUrl ?: "")
+                        DownloadWorker.KEY_THUMBNAIL_URL to (info.thumbnailUrl ?: ""),
+                        DownloadWorker.KEY_USERNAME to info.username,
+                        DownloadWorker.KEY_CAPTION to info.caption
                     )
                 )
                 .build()

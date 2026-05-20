@@ -101,6 +101,8 @@ class ShareReceiverActivity : AppCompatActivity() {
                         DownloadWorker.KEY_ORIGINAL_URL to originalUrl,
                         DownloadWorker.KEY_MEDIA_TYPE to mediaType,
                         DownloadWorker.KEY_THUMBNAIL_URL to (info.thumbnailUrl ?: ""),
+                        DownloadWorker.KEY_USERNAME to info.username,
+                        DownloadWorker.KEY_CAPTION to info.caption,
                         DownloadWorker.KEY_NOTIFY_ON_COMPLETE to true
                     )
                 )

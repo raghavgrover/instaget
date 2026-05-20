@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Left vertical bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,6 L6,18 L7.8,18 L7.8,6 Z" />
+    <!-- Left triangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7.8,12 L15,6.5 L15,17.5 Z" />
+    <!-- Right triangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,12 L22,6.5 L22,17.5 Z" />
+</vector>

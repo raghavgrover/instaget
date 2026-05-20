@@ -41,6 +41,8 @@ class DownloadWorker(
         const val KEY_ORIGINAL_URL = "originalUrl"
         const val KEY_MEDIA_TYPE = "mediaType"
         const val KEY_THUMBNAIL_URL = "thumbnailUrl"
+        const val KEY_USERNAME = "username"
+        const val KEY_CAPTION = "caption"
         const val KEY_NOTIFY_ON_COMPLETE = "notifyOnComplete"
         private const val TAG = "DownloadWorker"
         private const val CHANNEL_ID = "fetchin_downloads"
@@ -91,6 +93,8 @@ class DownloadWorker(
             val originalUrl = inputData.getString(KEY_ORIGINAL_URL) ?: ""
             val mediaType = inputData.getString(KEY_MEDIA_TYPE) ?: if (isVideo) "VIDEO" else "IMAGE"
             val thumbnailUrl = inputData.getString(KEY_THUMBNAIL_URL) ?: ""
+            val username = inputData.getString(KEY_USERNAME) ?: ""
+            val caption = inputData.getString(KEY_CAPTION) ?: ""
             val uriString = savedUri.toString()
 
             AppDatabase.getInstance(applicationContext).mediaDao().insert(
@@ -101,7 +105,9 @@ class DownloadWorker(
                     mediaType = mediaType.uppercase(),
                     thumbnailPath = uriString,
                     fileName = filename,
-                    downloadedAt = System.currentTimeMillis()
+                    downloadedAt = System.currentTimeMillis(),
+                    username = username,
+                    caption = caption
                 )
             )
 

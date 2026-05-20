@@ -13,5 +13,7 @@ data class MediaItem(
     val thumbnailPath: String,
     val fileName: String,
     val downloadedAt: Long,
+    val username: String = "",
+    val caption: String = "",
     val isPremium: Boolean = false
 )
