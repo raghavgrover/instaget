@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FetchIn" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.InstaGet" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
@@ -23,6 +23,4 @@
         <item name="android:backgroundDimEnabled">false</item>
     </style>
 
-    <!-- Keep the old name so any references don't break during build -->
-    <style name="Theme.FetchInInstagramMediaDownloader2026" parent="Theme.FetchIn" />
 </resources>

@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.fetchin_instagrammediadownloader2026"
+    namespace = "com.instaget.downloader"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.fetchin_instagrammediadownloader2026"
+        applicationId = "com.instaget.downloader"
         minSdk = 28
         targetSdk = 36
         versionCode = 1

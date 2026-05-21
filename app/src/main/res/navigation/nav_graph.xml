@@ -7,19 +7,19 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.fetchin_instagrammediadownloader2026.ui.home.HomeFragment"
+        android:name="com.instaget.downloader.ui.home.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@+id/libraryFragment"
-        android:name="com.example.fetchin_instagrammediadownloader2026.ui.library.LibraryFragment"
+        android:name="com.instaget.downloader.ui.library.LibraryFragment"
         android:label="Library"
         tools:layout="@layout/fragment_library" />
 
     <fragment
         android:id="@+id/premiumFragment"
-        android:name="com.example.fetchin_instagrammediadownloader2026.ui.premium.PremiumFragment"
+        android:name="com.instaget.downloader.ui.premium.PremiumFragment"
         android:label="Premium"
         tools:layout="@layout/fragment_premium" />
 

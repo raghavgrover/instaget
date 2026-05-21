@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FetchIn - Instagram Media Downloader 2026</string>
+    <string name="app_name">InstaGet - Instagram Downloader</string>
     <string name="app_short_name">InstaGet</string>
     <string name="tagline">Download anything from Instagram</string>
     <string name="nav_home">Home</string>
@@ -13,7 +13,7 @@
     <string name="btn_restore_purchases">Restore Purchases</string>
     <string name="btn_start_downloading">Start Downloading</string>
     <string name="btn_current_plan">Current Plan</string>
-    <string name="label_free_limit_reached">You\'ve used all 5 free downloads. Subscribe to continue.</string>
+    <string name="label_free_limit_reached">You\'ve used all 10 free downloads. Subscribe to continue.</string>
     <string name="label_no_downloads">No downloads yet</string>
     <string name="label_downloading">Downloading…</string>
     <string name="label_fetching_info">Fetching media info…</string>

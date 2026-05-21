@@ -23,7 +23,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true"
-        android:theme="@style/Theme.FetchIn">
+        android:theme="@style/Theme.InstaGet">
 
         <activity
             android:name=".SplashActivity"
@@ -39,12 +39,12 @@
             android:name=".MainActivity"
             android:exported="false"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.FetchIn" />
+            android:theme="@style/Theme.InstaGet" />
 
         <activity
             android:name=".FullScreenViewerActivity"
             android:exported="false"
-            android:theme="@style/Theme.FetchIn" />
+            android:theme="@style/Theme.InstaGet" />
 
         <activity
             android:name=".ShareReceiverActivity"

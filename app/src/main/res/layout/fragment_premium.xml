@@ -74,18 +74,6 @@
                 <include layout="@layout/view_feature_check" android:id="@+id/featureFree1"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="12dp" />
-                <include layout="@layout/view_feature_check" android:id="@+id/featureFree2"
-                    android:layout_width="match_parent" android:layout_height="wrap_content" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFreePlan"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/btn_current_plan"
-                    android:enabled="false"
-                    app:strokeColor="@color/colorPrimary" />
 
             </LinearLayout>
 
@@ -127,6 +115,7 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
                         <TextView
+                            android:id="@+id/tvMonthlyPrice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="₹100"
@@ -215,6 +204,7 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
                         <TextView
+                            android:id="@+id/tvAnnualPrice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="₹1,000"
