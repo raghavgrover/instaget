@@ -10,13 +10,13 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/surface"
+        android:background="@drawable/bg_premium_gradient"
         android:elevation="4dp">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/label_my_downloads"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold" />
     </androidx.appcompat.widget.Toolbar>
