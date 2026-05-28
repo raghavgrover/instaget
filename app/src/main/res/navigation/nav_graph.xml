@@ -12,6 +12,12 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
+        android:id="@+id/threadsFragment"
+        android:name="com.instaget.downloader.ui.threads.ThreadsFragment"
+        android:label="Threads"
+        tools:layout="@layout/fragment_threads" />
+
+    <fragment
         android:id="@+id/libraryFragment"
         android:name="com.instaget.downloader.ui.library.LibraryFragment"
         android:label="Library"
