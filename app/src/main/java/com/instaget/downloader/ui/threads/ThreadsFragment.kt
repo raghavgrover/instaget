@@ -25,9 +25,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.snackbar.Snackbar
 import com.instaget.downloader.R
+import com.instaget.downloader.billing.BillingManager
 import com.instaget.downloader.data.ThreadsPostInfo
+import com.instaget.downloader.data.db.AppDatabase
+import com.instaget.downloader.databinding.BottomSheetFreeLimitBinding
 import com.instaget.downloader.databinding.FragmentThreadsBinding
 import com.instaget.downloader.worker.DownloadWorker
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +42,10 @@ import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
 class ThreadsFragment : Fragment() {
+
+    companion object {
+        private const val FREE_DOWNLOAD_LIMIT = 10
+    }
 
     private var _binding: FragmentThreadsBinding? = null
     private val binding get() = _binding!!
@@ -158,6 +166,35 @@ class ThreadsFragment : Fragment() {
     }
 
     private fun checkPermissionsAndDownload(info: ThreadsPostInfo) {
+        lifecycleScope.launch {
+            val billing = BillingManager.getInstance(requireContext())
+            if (!billing.isUserSubscribed()) {
+                val count = withContext(Dispatchers.IO) {
+                    AppDatabase.getInstance(requireContext()).mediaDao().getCount()
+                }
+                if (count >= FREE_DOWNLOAD_LIMIT) {
+                    showFreeLimitSheet()
+                    return@launch
+                }
+            }
+            proceedWithPermissionCheck(info)
+        }
+    }
+
+    private fun showFreeLimitSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetBinding = BottomSheetFreeLimitBinding.inflate(layoutInflater)
+        dialog.setContentView(sheetBinding.root)
+        sheetBinding.btnViewPlans.setOnClickListener {
+            dialog.dismiss()
+            requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+                R.id.bottomNavigationView
+            )?.selectedItemId = R.id.premiumFragment
+        }
+        dialog.show()
+    }
+
+    private fun proceedWithPermissionCheck(info: ThreadsPostInfo) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             enqueueMediaDownload(info)
         } else {

@@ -23,6 +23,9 @@ class PremiumFragment : Fragment() {
     private enum class SelectedPlan { MONTHLY, SEMI_ANNUAL, ANNUAL }
     private var selectedPlan = SelectedPlan.ANNUAL
 
+    // Track previous subscription state to detect fresh purchases
+    private var previousSubscriptionState: SubscriptionState? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -36,28 +39,44 @@ class PremiumFragment : Fragment() {
         // Default: Annual selected
         updatePlanSelection()
 
-        // Observe subscription state
+        // Observe subscription state — detect transitions for purchase success toast
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.subscriptionState.collect { state ->
+                val prev = previousSubscriptionState
+                if (prev == SubscriptionState.FREE && state.isSubscribed()) {
+                    Snackbar.make(binding.root, "Subscription activated! Thank you.", Snackbar.LENGTH_LONG).show()
+                }
+                previousSubscriptionState = state
                 renderSubscriptionState(state)
             }
         }
 
-        // Observe billing loading
+        // Observe billing loading indicator
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.billingLoading.collect { loading ->
                 binding.billingLoadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
             }
         }
 
-        // Fetch prices from Play Store and update UI dynamically
+        // Fetch prices from Play Store and update all 3 tiles dynamically
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.fetchProductDetails()
+
+            // Monthly
             viewModel.getMonthlyProductDetails()
                 ?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.firstOrNull()
                 ?.formattedPrice
                 ?.let { binding.tvMonthlyPrice.text = it }
+
+            // Semi-annual
+            viewModel.getSemiAnnualProductDetails()
+                ?.subscriptionOfferDetails?.firstOrNull()
+                ?.pricingPhases?.pricingPhaseList?.firstOrNull()
+                ?.formattedPrice
+                ?.let { binding.tvSemiAnnualPrice.text = it }
+
+            // Annual
             viewModel.getAnnualProductDetails()
                 ?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.firstOrNull()
@@ -79,7 +98,7 @@ class PremiumFragment : Fragment() {
             updatePlanSelection()
         }
 
-        // Single subscribe button
+        // Single subscribe button — launches Play Store billing flow
         binding.btnSubscribe.setOnClickListener {
             lifecycleScope.launch {
                 viewModel.fetchProductDetails()
@@ -103,17 +122,14 @@ class PremiumFragment : Fragment() {
 
         binding.btnRestore.setOnClickListener {
             viewModel.restorePurchases { active ->
-                val msg = if (active) {
-                    getString(R.string.label_subscription_restored)
-                } else {
-                    getString(R.string.label_no_active_subscription)
-                }
+                val msg = if (active) getString(R.string.label_subscription_restored)
+                          else getString(R.string.label_no_active_subscription)
                 Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
             }
         }
     }
 
-    /** Highlights the selected card and updates the subscribe button text. */
+    /** Highlights the selected card and syncs the subscribe button label. */
     private fun updatePlanSelection() {
         val primary = requireContext().getColor(R.color.colorPrimary)
         binding.cardMonthly.apply {
@@ -181,3 +197,9 @@ class PremiumFragment : Fragment() {
         _binding = null
     }
 }
+
+/** Returns true for any active subscription state. */
+private fun SubscriptionState.isSubscribed() =
+    this == SubscriptionState.SUBSCRIBED_MONTHLY ||
+    this == SubscriptionState.SUBSCRIBED_SEMI_ANNUAL ||
+    this == SubscriptionState.SUBSCRIBED_ANNUAL
