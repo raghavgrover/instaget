@@ -436,7 +436,9 @@ class ThreadsScraper {
     private fun isPostImage(url: String): Boolean {
         if (url.isBlank()) return false
         val lower = url.lowercase()
-        if (lower.contains("t51.2885-19") || lower.contains("profile_pic") || lower.contains("profilepic")) return false
+        // All Meta CDN buckets ending in -19 are profile/avatar buckets (e.g. t51.2885-19, t51.82787-19)
+        if (Regex("""/t\d+\.\d+-19/""").containsMatchIn(lower)) return false
+        if (lower.contains("profile_pic") || lower.contains("profilepic")) return false
         return (lower.contains("cdninstagram.com") || lower.contains("fbcdn.net")) && lower.contains("/v/")
     }
 

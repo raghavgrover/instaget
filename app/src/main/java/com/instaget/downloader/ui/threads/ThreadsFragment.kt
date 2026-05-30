@@ -268,7 +268,6 @@ class ThreadsFragment : Fragment() {
 
     private fun saveTextToFile(info: ThreadsPostInfo) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val timestamp = System.currentTimeMillis()
             val filename = "Threads_${info.postId}.txt"
             val content = buildString {
                 if (info.username.isNotBlank()) appendLine("@${info.username}")
@@ -276,13 +275,15 @@ class ThreadsFragment : Fragment() {
                 append(info.text)
             }
 
-            val saved = withContext(Dispatchers.IO) {
+            // Returns the saved URI/path string on success, null on failure
+            val savedPath: String? = withContext(Dispatchers.IO) {
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // MediaStore.Downloads maps to the Download/ folder — RELATIVE_PATH must be under Download/
                         val values = ContentValues().apply {
                             put(MediaStore.Downloads.DISPLAY_NAME, filename)
                             put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-                            put(MediaStore.Downloads.RELATIVE_PATH, "Documents/InstaGet")
+                            put(MediaStore.Downloads.RELATIVE_PATH, "Download/InstaGet")
                         }
                         val uri = requireContext().contentResolver
                             .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
@@ -290,24 +291,34 @@ class ThreadsFragment : Fragment() {
                             requireContext().contentResolver.openOutputStream(uri)?.use { out ->
                                 out.write(content.toByteArray())
                             }
-                            true
-                        } else false
+                            uri.toString()
+                        } else {
+                            android.util.Log.e("ThreadsFragment", "MediaStore insert returned null for $filename")
+                            null
+                        }
                     } else {
                         val dir = File(
-                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                             "InstaGet"
                         ).also { it.mkdirs() }
-                        FileOutputStream(File(dir, filename)).use { it.write(content.toByteArray()) }
-                        true
+                        val file = File(dir, filename)
+                        FileOutputStream(file).use { it.write(content.toByteArray()) }
+                        file.absolutePath
                     }
                 } catch (e: Exception) {
-                    false
+                    android.util.Log.e("ThreadsFragment", "saveTextToFile error", e)
+                    null
                 }
             }
 
-            val msg = if (saved) "Saved to Documents/InstaGet ✓" else "Failed to save file"
-            Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
-            if (saved) binding.etUrl.text?.clear()
+            if (savedPath != null) {
+                // Save to Library so it appears in the Downloads tab
+                viewModel.saveTextPostToLibrary(info, savedPath)
+                Snackbar.make(binding.root, "Saved to Downloads/InstaGet ✓", Snackbar.LENGTH_LONG).show()
+                binding.etUrl.text?.clear()
+            } else {
+                Snackbar.make(binding.root, "Failed to save file", Snackbar.LENGTH_LONG).show()
+            }
         }
     }
 

@@ -29,21 +29,33 @@ class MediaAdapter(
 
         fun bind(libraryItem: LibraryItem) {
             val item = libraryItem.mediaItem
-            val uri = Uri.parse(item.localPath)
 
-            Glide.with(binding.ivThumbnail.context)
-                .load(uri)
-                .centerCrop()
-                .into(binding.ivThumbnail)
-
-            binding.ivPlayOverlay.visibility =
-                if (item.mediaType == "VIDEO" && libraryItem.count <= 1) View.VISIBLE else View.GONE
-
-            if (libraryItem.count > 1) {
-                binding.carouselBadge.visibility = View.VISIBLE
-                binding.tvCarouselCount.text = libraryItem.count.toString()
-            } else {
+            if (item.mediaType == "TEXT") {
+                // Text-only post: hide thumbnail frame, show text preview
+                binding.mediaFrame.visibility = View.GONE
+                binding.tvTextPreview.visibility = View.VISIBLE
+                binding.tvTextPreview.text = item.caption.ifBlank { item.username }
+                binding.ivPlayOverlay.visibility = View.GONE
                 binding.carouselBadge.visibility = View.GONE
+            } else {
+                // Photo / video / carousel: show thumbnail, hide text preview
+                binding.mediaFrame.visibility = View.VISIBLE
+                binding.tvTextPreview.visibility = View.GONE
+
+                Glide.with(binding.ivThumbnail.context)
+                    .load(Uri.parse(item.localPath))
+                    .centerCrop()
+                    .into(binding.ivThumbnail)
+
+                binding.ivPlayOverlay.visibility =
+                    if (item.mediaType == "VIDEO" && libraryItem.count <= 1) View.VISIBLE else View.GONE
+
+                if (libraryItem.count > 1) {
+                    binding.carouselBadge.visibility = View.VISIBLE
+                    binding.tvCarouselCount.text = libraryItem.count.toString()
+                } else {
+                    binding.carouselBadge.visibility = View.GONE
+                }
             }
 
             binding.root.setOnClickListener { onItemClick(libraryItem) }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.instaget.downloader.data.ThreadsPostInfo
 import com.instaget.downloader.data.ThreadsScraper
 import com.instaget.downloader.data.db.AppDatabase
+import com.instaget.downloader.data.db.MediaItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,5 +62,24 @@ class ThreadsViewModel(application: Application) : AndroidViewModel(application)
 
     fun reset() {
         _scrapeState.value = ThreadsScrapeState.Idle
+    }
+
+    /** Save a text-only post to the library after the user taps "Save as .txt" */
+    fun saveTextPostToLibrary(info: ThreadsPostInfo, localPath: String) {
+        viewModelScope.launch {
+            dao.insert(
+                MediaItem(
+                    shortcode    = "threads_${info.postId}",
+                    originalUrl  = "",
+                    localPath    = localPath,
+                    mediaType    = "TEXT",
+                    thumbnailPath = "",
+                    fileName     = "Threads_${info.postId}.txt",
+                    downloadedAt = System.currentTimeMillis(),
+                    username     = info.username,
+                    caption      = info.text
+                )
+            )
+        }
     }
 }

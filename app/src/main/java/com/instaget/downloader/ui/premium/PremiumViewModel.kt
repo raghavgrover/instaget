@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class SubscriptionState {
-    LOADING, FREE, SUBSCRIBED_MONTHLY, SUBSCRIBED_ANNUAL
+    LOADING, FREE, SUBSCRIBED_MONTHLY, SUBSCRIBED_SEMI_ANNUAL, SUBSCRIBED_ANNUAL
 }
 
 class PremiumViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,6 +34,7 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
 
     private fun skuToState(sku: String) = when (sku) {
         BillingManager.ANNUAL_SKU -> SubscriptionState.SUBSCRIBED_ANNUAL
+        BillingManager.SEMI_ANNUAL_SKU -> SubscriptionState.SUBSCRIBED_SEMI_ANNUAL
         BillingManager.MONTHLY_SKU -> SubscriptionState.SUBSCRIBED_MONTHLY
         else -> SubscriptionState.FREE
     }
@@ -55,6 +56,7 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun getMonthlyProductDetails() = billingManager.getMonthlyProductDetails()
+    fun getSemiAnnualProductDetails() = billingManager.getSemiAnnualProductDetails()
     fun getAnnualProductDetails() = billingManager.getAnnualProductDetails()
 
     fun restorePurchases(onResult: (Boolean) -> Unit) {

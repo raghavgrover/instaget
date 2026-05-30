@@ -79,7 +79,10 @@ class FullScreenViewerActivity : AppCompatActivity() {
             override fun onGlobalLayout() {
                 binding.root.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 val controlsH = binding.controlsBar.height
-                binding.mediaFrame.updateLayoutParams { height = binding.scrollView.height - controlsH }
+                // Text-only posts have no media frame — don't size it
+                if (mediaType != "TEXT") {
+                    binding.mediaFrame.updateLayoutParams { height = binding.scrollView.height - controlsH }
+                }
                 binding.scrollView.updatePadding(bottom = controlsH)
             }
         })
@@ -150,8 +153,29 @@ class FullScreenViewerActivity : AppCompatActivity() {
 
     private fun showSingleItem() {
         if (localPath.isEmpty()) { finish(); return }
-        val uri = Uri.parse(localPath)
-        if (mediaType == "VIDEO") setupVideo(uri) else setupImage(uri)
+        when (mediaType) {
+            "VIDEO" -> setupVideo(Uri.parse(localPath))
+            "TEXT"  -> setupTextOnly()
+            else    -> setupImage(Uri.parse(localPath))
+        }
+    }
+
+    private fun setupTextOnly() {
+        // Hide the media frame entirely — caption/username from infoSection is all there is
+        binding.mediaFrame.visibility = View.GONE
+        binding.ivFullscreen.visibility = View.GONE
+        binding.videoView.visibility = View.GONE
+        binding.btnRewind.visibility = View.GONE
+        binding.btnPlayPause.visibility = View.GONE
+        binding.btnForward.visibility = View.GONE
+        // White background throughout — no black gap below the caption box
+        binding.root.setBackgroundColor(Color.WHITE)
+        binding.scrollView.setBackgroundColor(Color.WHITE)
+        binding.controlsBar.setBackgroundColor(Color.parseColor("#F0F0F0"))
+        // Re-tint control bar icons to dark so they're visible on the light background
+        val darkTint = android.content.res.ColorStateList.valueOf(Color.parseColor("#333333"))
+        listOf(binding.btnCopyLink, binding.btnShare, binding.btnDelete, binding.btnInstagram)
+            .forEach { it.imageTintList = darkTint }
     }
 
     private fun setupImage(uri: Uri) {
