@@ -44,21 +44,32 @@ class DownloadWorker(
         const val KEY_USERNAME = "username"
         const val KEY_CAPTION = "caption"
         const val KEY_NOTIFY_ON_COMPLETE = "notifyOnComplete"
+        const val KEY_REFERER = "referer"
+        const val KEY_COOKIE = "cookie"
         private const val TAG = "DownloadWorker"
         private const val CHANNEL_ID = "fetchin_downloads"
     }
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .addInterceptor { chain ->
-            val req = chain.request().newBuilder()
-                .header("Referer", "https://www.instagram.com/")
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-                .build()
-            chain.proceed(req)
-        }
-        .build()
+    // Resolved lazily per-task so inputData is available
+    private val client by lazy {
+        val referer = inputData.getString(KEY_REFERER) ?: "https://www.instagram.com/"
+        val cookie = inputData.getString(KEY_COOKIE) ?: ""
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val reqBuilder = chain.request().newBuilder()
+                    .header("Referer", referer)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Accept", "image/webp,image/apng,image/*,video/*,*/*;q=0.8")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                if (cookie.isNotBlank()) {
+                    reqBuilder.header("Cookie", cookie)
+                }
+                chain.proceed(reqBuilder.build())
+            }
+            .build()
+    }
 
     override suspend fun doWork(): Result {
         val mediaUrl = inputData.getString(KEY_MEDIA_URL)

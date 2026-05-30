@@ -56,20 +56,21 @@
 
             </FrameLayout>
 
-            <!-- Info section: username + caption + copy actions -->
+            <!-- Info section: username + caption + copy actions — white bg, black text -->
             <LinearLayout
                 android:id="@+id/infoSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp"
+                android:background="#FFFFFF"
                 android:visibility="gone">
 
                 <TextView
                     android:id="@+id/tvUsername"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#000000"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:paddingBottom="6dp" />
@@ -78,9 +79,9 @@
                     android:id="@+id/tvCaption"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#CCCCCC"
-                    android:textSize="13sp"
-                    android:lineSpacingMultiplier="1.3"
+                    android:textColor="#262626"
+                    android:textSize="14sp"
+                    android:lineSpacingMultiplier="1.4"
                     android:paddingBottom="12dp" />
 
                 <!-- Copy actions row -->
@@ -104,13 +105,14 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_content_copy"
-                            android:contentDescription="@null" />
+                            android:contentDescription="@null"
+                            android:tint="#555555" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Copy username"
-                            android:textColor="#AAAAAA"
+                            android:textColor="#555555"
                             android:textSize="12sp"
                             android:paddingStart="5dp" />
 
@@ -130,13 +132,14 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_content_copy"
-                            android:contentDescription="@null" />
+                            android:contentDescription="@null"
+                            android:tint="#555555" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Copy caption"
-                            android:textColor="#AAAAAA"
+                            android:textColor="#555555"
                             android:textSize="12sp"
                             android:paddingStart="5dp" />
 

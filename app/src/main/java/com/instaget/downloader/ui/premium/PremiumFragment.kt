@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +20,9 @@ class PremiumFragment : Fragment() {
 
     private val viewModel: PremiumViewModel by viewModels()
 
+    private enum class SelectedPlan { MONTHLY, SEMI_ANNUAL, ANNUAL }
+    private var selectedPlan = SelectedPlan.ANNUAL
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -31,14 +33,17 @@ class PremiumFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupFeatureTexts()
+        // Default: Annual selected
+        updatePlanSelection()
 
+        // Observe subscription state
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.subscriptionState.collect { state ->
                 renderSubscriptionState(state)
             }
         }
 
+        // Observe billing loading
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.billingLoading.collect { loading ->
                 binding.billingLoadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
@@ -60,28 +65,38 @@ class PremiumFragment : Fragment() {
                 ?.let { binding.tvAnnualPrice.text = it }
         }
 
-        binding.btnMonthly.setOnClickListener {
-            lifecycleScope.launch {
-                viewModel.fetchProductDetails()
-                val productDetails = viewModel.getMonthlyProductDetails()
-                if (productDetails != null) {
-                    BillingManager.getInstance(requireContext())
-                        .launchPurchaseFlow(requireActivity(), productDetails, null)
-                } else {
-                    Snackbar.make(binding.root, "Unable to connect to Play Store. Try again.", Snackbar.LENGTH_LONG).show()
-                }
-            }
+        // Card tap — select plan
+        binding.cardMonthly.setOnClickListener {
+            selectedPlan = SelectedPlan.MONTHLY
+            updatePlanSelection()
+        }
+        binding.cardSemiAnnual.setOnClickListener {
+            selectedPlan = SelectedPlan.SEMI_ANNUAL
+            updatePlanSelection()
+        }
+        binding.cardAnnual.setOnClickListener {
+            selectedPlan = SelectedPlan.ANNUAL
+            updatePlanSelection()
         }
 
-        binding.btnAnnual.setOnClickListener {
+        // Single subscribe button
+        binding.btnSubscribe.setOnClickListener {
             lifecycleScope.launch {
                 viewModel.fetchProductDetails()
-                val productDetails = viewModel.getAnnualProductDetails()
+                val productDetails = when (selectedPlan) {
+                    SelectedPlan.MONTHLY -> viewModel.getMonthlyProductDetails()
+                    SelectedPlan.SEMI_ANNUAL -> viewModel.getSemiAnnualProductDetails()
+                    SelectedPlan.ANNUAL -> viewModel.getAnnualProductDetails()
+                }
                 if (productDetails != null) {
                     BillingManager.getInstance(requireContext())
                         .launchPurchaseFlow(requireActivity(), productDetails, null)
                 } else {
-                    Snackbar.make(binding.root, "Unable to connect to Play Store. Try again.", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        binding.root,
+                        "Unable to connect to Play Store. Try again.",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -98,54 +113,65 @@ class PremiumFragment : Fragment() {
         }
     }
 
-    private fun setupFeatureTexts() {
-        binding.featureFree1.tvFeatureText.text = "10 lifetime downloads"
-
-        binding.featureMonthly1.tvFeatureText.text = "Unlimited downloads"
-        binding.featureMonthly2.tvFeatureText.text = "Photos, Videos, Reels, Stories & Carousel"
-
-        binding.featureAnnual1.tvFeatureText.text = "Unlimited downloads"
-        binding.featureAnnual2.tvFeatureText.text = "Photos, Videos, Reels, Stories & Carousel"
+    /** Highlights the selected card and updates the subscribe button text. */
+    private fun updatePlanSelection() {
+        val primary = requireContext().getColor(R.color.colorPrimary)
+        binding.cardMonthly.apply {
+            strokeColor = if (selectedPlan == SelectedPlan.MONTHLY) primary else 0
+            strokeWidth = if (selectedPlan == SelectedPlan.MONTHLY) 6 else 0
+        }
+        binding.cardSemiAnnual.apply {
+            strokeColor = if (selectedPlan == SelectedPlan.SEMI_ANNUAL) primary else 0
+            strokeWidth = if (selectedPlan == SelectedPlan.SEMI_ANNUAL) 6 else 0
+        }
+        binding.cardAnnual.apply {
+            strokeColor = if (selectedPlan == SelectedPlan.ANNUAL) primary else 0
+            strokeWidth = if (selectedPlan == SelectedPlan.ANNUAL) 6 else 0
+        }
+        binding.btnSubscribe.isEnabled = true
+        binding.btnSubscribe.text = when (selectedPlan) {
+            SelectedPlan.MONTHLY -> "Subscribe Monthly"
+            SelectedPlan.SEMI_ANNUAL -> "Subscribe Semi-annually"
+            SelectedPlan.ANNUAL -> "Subscribe Annually"
+        }
     }
 
     private fun renderSubscriptionState(state: SubscriptionState) {
-        val primaryColor = requireContext().getColor(R.color.colorPrimary)
-        val defaultColor = requireContext().getColor(R.color.surface)
-        val selectedBorder = 2f
-
-        binding.cardFree.strokeWidth = 0
-        binding.cardMonthly.strokeWidth = 0
-        binding.cardAnnual.strokeWidth = 0
-
+        val primary = requireContext().getColor(R.color.colorPrimary)
         when (state) {
             SubscriptionState.LOADING -> {
                 binding.billingLoadingIndicator.visibility = View.VISIBLE
             }
             SubscriptionState.FREE -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardFree.strokeColor = primaryColor
-                binding.cardFree.strokeWidth = 6
-                binding.cardFree.cardElevation = 8f
-                binding.btnMonthly.isEnabled = true
-                binding.btnAnnual.isEnabled = true
+                updatePlanSelection()
             }
             SubscriptionState.SUBSCRIBED_MONTHLY -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardMonthly.strokeColor = primaryColor
+                binding.cardMonthly.strokeColor = primary
                 binding.cardMonthly.strokeWidth = 6
-                binding.cardMonthly.cardElevation = 8f
-                binding.btnMonthly.text = "Active Plan"
-                binding.btnMonthly.isEnabled = false
-                binding.btnAnnual.isEnabled = true
+                binding.cardSemiAnnual.strokeWidth = 0
+                binding.cardAnnual.strokeWidth = 0
+                binding.btnSubscribe.text = "Monthly Plan Active"
+                binding.btnSubscribe.isEnabled = false
+            }
+            SubscriptionState.SUBSCRIBED_SEMI_ANNUAL -> {
+                binding.billingLoadingIndicator.visibility = View.GONE
+                binding.cardMonthly.strokeWidth = 0
+                binding.cardSemiAnnual.strokeColor = primary
+                binding.cardSemiAnnual.strokeWidth = 6
+                binding.cardAnnual.strokeWidth = 0
+                binding.btnSubscribe.text = "Semi-annual Plan Active"
+                binding.btnSubscribe.isEnabled = false
             }
             SubscriptionState.SUBSCRIBED_ANNUAL -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardAnnual.strokeColor = primaryColor
+                binding.cardMonthly.strokeWidth = 0
+                binding.cardSemiAnnual.strokeWidth = 0
+                binding.cardAnnual.strokeColor = primary
                 binding.cardAnnual.strokeWidth = 6
-                binding.cardAnnual.cardElevation = 8f
-                binding.btnAnnual.text = "Active Plan"
-                binding.btnAnnual.isEnabled = false
-                binding.btnMonthly.isEnabled = true
+                binding.btnSubscribe.text = "Annual Plan Active"
+                binding.btnSubscribe.isEnabled = false
             }
         }
     }

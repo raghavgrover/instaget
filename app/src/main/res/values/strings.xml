@@ -3,6 +3,7 @@
     <string name="app_short_name">InstaGet</string>
     <string name="tagline">Download anything from Instagram</string>
     <string name="nav_home">Home</string>
+    <string name="nav_threads">Threads</string>
     <string name="nav_library">Library</string>
     <string name="nav_premium">Premium</string>
     <string name="hint_paste_link">Paste Instagram link here…</string>
@@ -40,9 +41,14 @@
     <string name="label_annual_plan">Annual</string>
     <string name="label_popular">Popular</string>
     <string name="label_best_value">Best Value</string>
+    <string name="label_save_50">Best Saver</string>
+    <string name="label_semi_annual_plan">6 months</string>
     <string name="label_forever">forever</string>
     <string name="label_per_month">per month</string>
+    <string name="label_per_6_months">6 months  •  ₹250/mo</string>
+    <string name="label_per_year">per year</string>
     <string name="label_per_year_savings">per year  •  Save 17%</string>
+    <string name="label_ongoing_offer">Subscription auto-renews unless cancelled</string>
     <string name="label_carousel_snackbar">Subscribe to download all %1$d items in this carousel.</string>
     <string name="label_paste">Paste</string>
     <string name="label_download_instagram_media">Download Instagram Media</string>

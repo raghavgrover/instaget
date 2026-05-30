@@ -17,6 +17,7 @@ class BillingManager private constructor(private val context: Context) {
 
     companion object {
         const val MONTHLY_SKU = "instaget_pro_monthly"
+        const val SEMI_ANNUAL_SKU = "instaget_pro_semi_annual"
         const val ANNUAL_SKU = "instaget_pro_annual"
         private const val PREF_NAME = "billing_prefs"
         private const val KEY_IS_SUBSCRIBED = "is_subscribed"
@@ -44,6 +45,7 @@ class BillingManager private constructor(private val context: Context) {
 
     private var cachedSubscribed: Boolean? = null
     private var monthlyProductDetails: ProductDetails? = null
+    private var semiAnnualProductDetails: ProductDetails? = null
     private var annualProductDetails: ProductDetails? = null
 
     private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
@@ -86,6 +88,10 @@ class BillingManager private constructor(private val context: Context) {
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build(),
             QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(SEMI_ANNUAL_SKU)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build(),
+            QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(ANNUAL_SKU)
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
@@ -99,6 +105,7 @@ class BillingManager private constructor(private val context: Context) {
                 productDetailsList.forEach { pd ->
                     when (pd.productId) {
                         MONTHLY_SKU -> monthlyProductDetails = pd
+                        SEMI_ANNUAL_SKU -> semiAnnualProductDetails = pd
                         ANNUAL_SKU -> annualProductDetails = pd
                     }
                 }
@@ -129,6 +136,7 @@ class BillingManager private constructor(private val context: Context) {
     }
 
     fun getMonthlyProductDetails(): ProductDetails? = monthlyProductDetails
+    fun getSemiAnnualProductDetails(): ProductDetails? = semiAnnualProductDetails
     fun getAnnualProductDetails(): ProductDetails? = annualProductDetails
 
     suspend fun queryActivePurchases(): Boolean {
@@ -142,11 +150,13 @@ class BillingManager private constructor(private val context: Context) {
                     val activePurchase = purchases.firstOrNull { purchase ->
                         purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
                                 (purchase.products.contains(MONTHLY_SKU) ||
+                                        purchase.products.contains(SEMI_ANNUAL_SKU) ||
                                         purchase.products.contains(ANNUAL_SKU))
                     }
                     val active = activePurchase != null
                     val activeSku = when {
                         activePurchase?.products?.contains(ANNUAL_SKU) == true -> ANNUAL_SKU
+                        activePurchase?.products?.contains(SEMI_ANNUAL_SKU) == true -> SEMI_ANNUAL_SKU
                         activePurchase?.products?.contains(MONTHLY_SKU) == true -> MONTHLY_SKU
                         else -> ""
                     }
@@ -180,6 +190,7 @@ class BillingManager private constructor(private val context: Context) {
             }
             val activeSku = when {
                 purchase.products.contains(ANNUAL_SKU) -> ANNUAL_SKU
+                purchase.products.contains(SEMI_ANNUAL_SKU) -> SEMI_ANNUAL_SKU
                 else -> MONTHLY_SKU
             }
             cachedSubscribed = true
