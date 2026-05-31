@@ -7,6 +7,9 @@
         <item name="android:windowBackground">@color/backgroundColor</item>
         <item name="android:statusBarColor">@color/colorStatusBar</item>
         <item name="android:windowLightStatusBar">false</item>
+        <!-- Android 15 (API 35) forces edge-to-edge which ignores statusBarColor.
+             Opt out so our purple status bar is respected across all API levels. -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">

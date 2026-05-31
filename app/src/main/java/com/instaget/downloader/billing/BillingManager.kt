@@ -22,6 +22,8 @@ class BillingManager private constructor(private val context: Context) {
         private const val PREF_NAME = "billing_prefs"
         private const val KEY_IS_SUBSCRIBED = "is_subscribed"
         private const val KEY_ACTIVE_SKU = "active_sku"
+        private const val KEY_IS_CANCELLED = "is_cancelled"
+        private const val KEY_LAST_PURCHASE_TIME = "last_purchase_time"
 
         @Volatile
         private var INSTANCE: BillingManager? = null
@@ -44,6 +46,8 @@ class BillingManager private constructor(private val context: Context) {
     val activeSkuFlow: StateFlow<String> = _activeSkuFlow.asStateFlow()
 
     private var cachedSubscribed: Boolean? = null
+    private var isCancelledSubscription: Boolean = prefs.getBoolean(KEY_IS_CANCELLED, false)
+    private var lastPurchaseTimeMs: Long = prefs.getLong(KEY_LAST_PURCHASE_TIME, 0L)
     private var monthlyProductDetails: ProductDetails? = null
     private var semiAnnualProductDetails: ProductDetails? = null
     private var annualProductDetails: ProductDetails? = null
@@ -155,6 +159,8 @@ class BillingManager private constructor(private val context: Context) {
     fun getMonthlyProductDetails(): ProductDetails? = monthlyProductDetails
     fun getSemiAnnualProductDetails(): ProductDetails? = semiAnnualProductDetails
     fun getAnnualProductDetails(): ProductDetails? = annualProductDetails
+    fun isSubscriptionCancelled(): Boolean = isCancelledSubscription
+    fun getLastPurchaseTimeMs(): Long = lastPurchaseTimeMs
 
     suspend fun queryActivePurchases(): Boolean {
         val params = QueryPurchasesParams.newBuilder()
@@ -177,10 +183,14 @@ class BillingManager private constructor(private val context: Context) {
                         activePurchase?.products?.contains(MONTHLY_SKU) == true -> MONTHLY_SKU
                         else -> ""
                     }
+                    isCancelledSubscription = active && (activePurchase?.isAutoRenewing == false)
+                    lastPurchaseTimeMs = activePurchase?.purchaseTime ?: 0L
                     cachedSubscribed = active
                     prefs.edit()
                         .putBoolean(KEY_IS_SUBSCRIBED, active)
                         .putString(KEY_ACTIVE_SKU, activeSku)
+                        .putBoolean(KEY_IS_CANCELLED, isCancelledSubscription)
+                        .putLong(KEY_LAST_PURCHASE_TIME, lastPurchaseTimeMs)
                         .apply()
                     _isSubscribedFlow.value = active
                     _activeSkuFlow.value = activeSku
@@ -217,6 +227,12 @@ class BillingManager private constructor(private val context: Context) {
                 .apply()
             _isSubscribedFlow.value = true
             _activeSkuFlow.value = activeSku
+            isCancelledSubscription = false  // fresh purchase is never cancelled
+            lastPurchaseTimeMs = purchase.purchaseTime
+            prefs.edit()
+                .putBoolean(KEY_IS_CANCELLED, false)
+                .putLong(KEY_LAST_PURCHASE_TIME, purchase.purchaseTime)
+                .apply()
         }
     }
 

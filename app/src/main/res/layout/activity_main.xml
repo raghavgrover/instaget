@@ -4,8 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:fitsSystemWindows="true"
-    android:background="@color/backgroundColor">
+    android:background="@color/colorStatusBar">
+
+    <!--
+      Root background = colorStatusBar (purple).
+      paddingTop is set programmatically = status bar height, so the only area
+      showing the purple root background is the narrow status bar strip at the top.
+      fitsSystemWindows is NOT set here — we handle insets manually in MainActivity
+      so the bottom nav bar area is NOT affected.
+      BottomNavigationView has fitsSystemWindows=true to handle its own bottom insets.
+    -->
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/navHostFragment"
@@ -21,6 +29,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface"
+        android:fitsSystemWindows="true"
         app:itemIconTint="@color/bottom_nav_selector"
         app:itemTextColor="@color/bottom_nav_selector"
         app:menu="@menu/bottom_nav_menu" />

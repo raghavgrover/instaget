@@ -46,6 +46,9 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /** Force a fresh Play Store check — called on every fragment resume. */
+    fun refresh() = refreshSubscriptionState()
+
     suspend fun fetchProductDetails() {
         _billingLoading.value = true
         try {
@@ -58,6 +61,8 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
     fun getMonthlyProductDetails() = billingManager.getMonthlyProductDetails()
     fun getSemiAnnualProductDetails() = billingManager.getSemiAnnualProductDetails()
     fun getAnnualProductDetails() = billingManager.getAnnualProductDetails()
+    fun isCancelled() = billingManager.isSubscriptionCancelled()
+    fun getLastPurchaseTimeMs() = billingManager.getLastPurchaseTimeMs()
 
     fun restorePurchases(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {

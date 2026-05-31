@@ -34,7 +34,7 @@ class ThreadsViewModel(application: Application) : AndroidViewModel(application)
             return
         }
         if (!scraper.isThreadsUrl(url)) {
-            _scrapeState.value = ThreadsScrapeState.Error("Invalid Threads URL — must contain threads.net/@user/post/…")
+            _scrapeState.value = ThreadsScrapeState.Error("Invalid Threads Link")
             return
         }
 

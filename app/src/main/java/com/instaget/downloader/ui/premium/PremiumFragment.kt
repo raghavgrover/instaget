@@ -135,6 +135,18 @@ class PremiumFragment : Fragment() {
                 Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
             }
         }
+
+        binding.btnCancelSubscription.setOnClickListener {
+            // Opens Google Play subscription management — user cancels there
+            val uri = android.net.Uri.parse("https://play.google.com/store/account/subscriptions")
+            startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Always refresh from Play Store on every visit so cancellations are reflected immediately
+        viewModel.refresh()
     }
 
     /** Highlights the selected card and syncs the subscribe button label. */
@@ -161,7 +173,6 @@ class PremiumFragment : Fragment() {
     }
 
     private fun renderSubscriptionState(state: SubscriptionState) {
-        val primary = requireContext().getColor(R.color.colorPrimary)
         when (state) {
             SubscriptionState.LOADING -> {
                 binding.billingLoadingIndicator.visibility = View.VISIBLE
@@ -175,7 +186,7 @@ class PremiumFragment : Fragment() {
             SubscriptionState.SUBSCRIBED_SEMI_ANNUAL,
             SubscriptionState.SUBSCRIBED_ANNUAL -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
-                showSubscribedLayout()
+                showSubscribedLayout(state)
             }
         }
     }
@@ -184,12 +195,32 @@ class PremiumFragment : Fragment() {
         binding.freeHeader.visibility = View.VISIBLE
         binding.subscribedHeader.visibility = View.GONE
         binding.subscriptionContent.visibility = View.VISIBLE
+        binding.btnCancelSubscription.visibility = View.GONE
     }
 
-    private fun showSubscribedLayout() {
+    private fun showSubscribedLayout(state: SubscriptionState) {
         binding.freeHeader.visibility = View.GONE
         binding.subscribedHeader.visibility = View.VISIBLE
         binding.subscriptionContent.visibility = View.GONE
+        binding.btnCancelSubscription.visibility = View.VISIBLE
+
+        // Show cancellation expiry notice only if subscription was cancelled by user
+        if (viewModel.isCancelled()) {
+            val purchaseTimeMs = viewModel.getLastPurchaseTimeMs()
+            val periodMs = when (state) {
+                SubscriptionState.SUBSCRIBED_SEMI_ANNUAL -> 180L * 24 * 60 * 60 * 1000
+                SubscriptionState.SUBSCRIBED_ANNUAL      -> 365L * 24 * 60 * 60 * 1000
+                else                                     -> 30L  * 24 * 60 * 60 * 1000
+            }
+            val expiryMs = purchaseTimeMs + periodMs
+            val sdf = java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault())
+            val expiryDate = sdf.format(java.util.Date(expiryMs))
+            binding.tvCancellationNotice.text =
+                "Your subscription has been cancelled\nand will expire on ~$expiryDate"
+            binding.tvCancellationNotice.visibility = View.VISIBLE
+        } else {
+            binding.tvCancellationNotice.visibility = View.GONE
+        }
     }
 
     override fun onDestroyView() {

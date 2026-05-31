@@ -7,7 +7,11 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.updatePadding
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.instaget.downloader.billing.BillingManager
@@ -26,7 +30,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        window.statusBarColor = getColor(R.color.colorStatusBar)
+        // Extend content behind ONLY the top status bar (not the bottom nav bar).
+        // The root layout background (colorStatusBar) shows through the transparent
+        // status bar, turning it purple. paddingTop is set to the status bar height
+        // so actual content starts below it. BottomNavigationView handles its own
+        // bottom insets via fitsSystemWindows=true, keeping the nav bar area white.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.updatePadding(top = statusBarTop)
+            insets  // pass through so BottomNavigationView handles bottom insets
+        }
         WindowInsetsControllerCompat(window, binding.root).isAppearanceLightStatusBars = false
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&

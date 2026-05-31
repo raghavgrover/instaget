@@ -65,6 +65,19 @@
                 android:textStyle="bold"
                 android:gravity="center" />
 
+            <!-- Shown only when subscription is cancelled but still in billing period -->
+            <TextView
+                android:id="@+id/tvCancellationNotice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:alpha="0.85"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Loading indicator while fetching billing -->
@@ -381,12 +394,25 @@
 
         </LinearLayout>
 
-        <!-- Terms / Privacy — always visible -->
+        <!-- Cancel Subscription — only visible when subscribed -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelSubscription"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:layout_marginHorizontal="16dp"
+            android:text="Cancel Subscription"
+            android:textColor="@color/colorPrimary"
+            android:visibility="gone" />
+
+        <!-- Terms / Privacy — always visible, very last item -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="4dp"
             android:layout_marginBottom="32dp"
             android:layout_marginHorizontal="16dp"
             android:text="@string/label_terms_privacy"
