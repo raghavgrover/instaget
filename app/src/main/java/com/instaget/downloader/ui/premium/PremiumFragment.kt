@@ -111,11 +111,15 @@ class PremiumFragment : Fragment() {
                     BillingManager.getInstance(requireContext())
                         .launchPurchaseFlow(requireActivity(), productDetails, null)
                 } else {
-                    Snackbar.make(
-                        binding.root,
-                        "Unable to connect to Play Store. Try again.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    val msg = if (BillingManager.getInstance(requireContext()).let {
+                            it.getMonthlyProductDetails() == null &&
+                            it.getAnnualProductDetails() == null
+                        }) {
+                        "Subscriptions not set up yet in Play Console. Check back soon."
+                    } else {
+                        "Unable to connect to Play Store. Please try again."
+                    }
+                    Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
                 }
             }
         }

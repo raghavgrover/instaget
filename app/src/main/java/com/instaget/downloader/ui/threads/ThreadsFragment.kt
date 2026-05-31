@@ -81,7 +81,19 @@ class ThreadsFragment : Fragment() {
         // Fetch & Download
         binding.btnFetch.setOnClickListener {
             val url = binding.etUrl.text?.toString()?.trim() ?: ""
-            viewModel.fetchPost(url)
+            lifecycleScope.launch {
+                val billing = BillingManager.getInstance(requireContext())
+                if (!billing.isUserSubscribed()) {
+                    val count = withContext(Dispatchers.IO) {
+                        AppDatabase.getInstance(requireContext()).mediaDao().getCount()
+                    }
+                    if (count >= FREE_DOWNLOAD_LIMIT) {
+                        showFreeLimitSheet()
+                        return@launch
+                    }
+                }
+                viewModel.fetchPost(url)
+            }
         }
 
         // Observe state
@@ -160,24 +172,8 @@ class ThreadsFragment : Fragment() {
                 // Media post: trigger download immediately
                 binding.rowTextActions.visibility = View.GONE
                 pendingInfo = info
-                checkPermissionsAndDownload(info)
+                proceedWithPermissionCheck(info)
             }
-        }
-    }
-
-    private fun checkPermissionsAndDownload(info: ThreadsPostInfo) {
-        lifecycleScope.launch {
-            val billing = BillingManager.getInstance(requireContext())
-            if (!billing.isUserSubscribed()) {
-                val count = withContext(Dispatchers.IO) {
-                    AppDatabase.getInstance(requireContext()).mediaDao().getCount()
-                }
-                if (count >= FREE_DOWNLOAD_LIMIT) {
-                    showFreeLimitSheet()
-                    return@launch
-                }
-            }
-            proceedWithPermissionCheck(info)
         }
     }
 

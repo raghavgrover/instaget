@@ -73,7 +73,7 @@ class ThreadsScraper {
 
             val enriched = tryEnrichCarousel(html, info).copy(sessionCookies = cookies)
 
-            val final = if (enriched.videoUrl == null && enriched.mediaType != "text") {
+            val final = if (enriched.videoUrl == null && enriched.mediaType != "text" && enriched.mediaType != "carousel") {
                 tryFetchVideo(html, postId, numericMediaId, lsdToken, dynamicDocIds, enriched)
             } else {
                 enriched

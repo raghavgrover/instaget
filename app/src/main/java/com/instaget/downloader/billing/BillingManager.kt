@@ -81,7 +81,24 @@ class BillingManager private constructor(private val context: Context) {
         })
     }
 
+    /** Ensure the billing client is connected, retrying once if needed. */
+    private suspend fun ensureConnected(): Boolean {
+        if (billingClient.isReady) return true
+        // Client not ready — try to reconnect and wait briefly
+        return suspendCoroutine { cont ->
+            billingClient.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    cont.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
+                }
+                override fun onBillingServiceDisconnected() {
+                    cont.resume(false)
+                }
+            })
+        }
+    }
+
     suspend fun querySubscriptionDetails(): List<ProductDetails> {
+        if (!ensureConnected()) return emptyList()
         val productList = listOf(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(MONTHLY_SKU)

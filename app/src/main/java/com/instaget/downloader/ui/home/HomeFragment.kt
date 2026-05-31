@@ -72,7 +72,19 @@ class HomeFragment : Fragment() {
 
         binding.btnDownload.setOnClickListener {
             val url = binding.etUrl.text?.toString()?.trim() ?: ""
-            viewModel.fetchMedia(url)
+            lifecycleScope.launch {
+                val billing = BillingManager.getInstance(requireContext())
+                if (!billing.isUserSubscribed()) {
+                    val count = withContext(Dispatchers.IO) {
+                        AppDatabase.getInstance(requireContext()).mediaDao().getCount()
+                    }
+                    if (count >= FREE_DOWNLOAD_LIMIT) {
+                        showFreeLimitSheet()
+                        return@launch
+                    }
+                }
+                viewModel.fetchMedia(url)
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -96,7 +108,7 @@ class HomeFragment : Fragment() {
                         binding.tvStatus.visibility = View.VISIBLE
                         binding.tvStatus.text = "@${info.username} · ${info.mediaType.replaceFirstChar { it.uppercase() }}"
                         pendingMediaInfo = info
-                        checkPermissionsAndDownload(info)
+                        proceedWithPermissionCheck(info)
                         viewModel.reset()
                     }
                     is ScrapeState.AlreadyDownloaded -> {
@@ -117,22 +129,6 @@ class HomeFragment : Fragment() {
                     }
                 }
             }
-        }
-    }
-
-    private fun checkPermissionsAndDownload(info: MediaInfo) {
-        lifecycleScope.launch {
-            val billing = BillingManager.getInstance(requireContext())
-            if (!billing.isUserSubscribed()) {
-                val count = withContext(Dispatchers.IO) {
-                    AppDatabase.getInstance(requireContext()).mediaDao().getCount()
-                }
-                if (count >= FREE_DOWNLOAD_LIMIT) {
-                    showFreeLimitSheet()
-                    return@launch
-                }
-            }
-            proceedWithPermissionCheck(info)
         }
     }
 
