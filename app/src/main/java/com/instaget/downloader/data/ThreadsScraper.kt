@@ -31,7 +31,7 @@ class ThreadsScraper {
         private const val GRAPHQL_URL = "https://www.threads.net/api/graphql"
 
         private val CDN_IMAGE_REGEX = Regex(
-            """https://(?:scontent[^"'\s]*\.cdninstagram\.com|instagram\.[^"'\s]*\.fbcdn\.net)/v/[^"'\s]+\.jpg[^"'\s]*"""
+            """https://(?:(?:scontent|video)[^"'\s]*\.(?:cdninstagram\.com|fbcdn\.net)|instagram\.[^"'\s]*\.fbcdn\.net)/(?:o1/)?v/[^"'\s]+\.(?:jpg|webp)[^"'\s]*"""
         )
         private val CDN_VIDEO_REGEX = Regex(
             """https://(?:video[^"'\s]*\.cdninstagram\.com|scontent[^"'\s]*\.cdninstagram\.com|instagram\.[^"'\s]*\.fbcdn\.net)/(?:o1/)?v/[^"'\s]+\.mp4[^"'\s]*"""
@@ -158,26 +158,31 @@ class ThreadsScraper {
         val markers = listOf("video_versions", "video_url", "dash_manifest", ".m3u8", "\"media_type\":2")
         Log.d(TAG, "HTML video markers: ${markers.filter { html.contains(it) }}")
 
-        // Primary: find "video_versions" then grab the first "url" value after it
-        // The URL may or may not end in .mp4 — match any https CDN URL
-        val versionsIdx = html.indexOf("\"video_versions\"")
-        if (versionsIdx >= 0) {
-            val ctx = html.substring(versionsIdx, minOf(html.length, versionsIdx + 3000))
-            Log.d(TAG, "video_versions context (600c): ${ctx.take(600)}")
+        // Primary: find "video_versions" with actual content (not null) then grab the .mp4 URL
+        // Skip "video_versions":null entries — carousel items have null video_versions
+        var searchFrom = 0
+        while (true) {
+            val idx = html.indexOf("\"video_versions\"", searchFrom)
+            if (idx < 0) break
+            searchFrom = idx + 16
+            // Skip if this is "video_versions":null
+            val peek = html.substring(idx + 16, minOf(html.length, idx + 25)).trimStart()
+            if (peek.startsWith(":null") || peek.startsWith(": null")) continue
 
-            // Pattern: "url":"https:..." — must start with https: and end at the closing quote
-            // Use [^"] so we don't need the full URL to fit in a fixed window
-            val urlMatch = Regex(""""url"\s*:\s*"(https:[^"]+)"""").find(ctx)
+            val ctx = html.substring(idx, minOf(html.length, idx + 3000))
+            Log.d(TAG, "video_versions (non-null) context (600c): ${ctx.take(600)}")
+
+            // Only accept a real video URL — must contain .mp4
+            val urlMatch = Regex(""""url"\s*:\s*"(https:[^"]+\.mp4[^"]*?)"""").find(ctx)
             if (urlMatch != null) {
                 val raw = urlMatch.groupValues[1].replace("\\/", "/").replace("&amp;", "&")
                 Log.d(TAG, "Candidate video URL: ${raw.take(120)}")
-                // Accept any https URL from a known CDN or with a video-like path
                 if (raw.startsWith("https://") &&
-                    (raw.contains("cdninstagram.com") || raw.contains("fbcdn.net") ||
-                     raw.contains("threads.net") || raw.contains("/v/"))) {
+                    (raw.contains("cdninstagram.com") || raw.contains("fbcdn.net"))) {
                     return raw
                 }
             }
+            break
         }
 
         // Fallback: JSON-escaped CDN URL — must contain .mp4 to avoid picking up thumbnails
@@ -354,8 +359,12 @@ class ThreadsScraper {
         val imageUrl = og["image"]?.replace("&amp;", "&")
         val ogType   = og["type"] ?: "article"
 
+        // Only use OG video tags here — never scan the full HTML for .mp4 at this stage.
+        // findVideoUrlInHtml would pick up video URLs from OTHER posts embedded in the SSR
+        // data (suggested content, replies), wrongly tagging carousel posts as videos.
+        // Actual video posts are handled by tryFetchVideo using a targeted media-ID search.
         val ogVideoUrl = (og["video:secure_url"] ?: og["video:url"] ?: og["video"])?.replace("&amp;", "&")
-        val videoUrl   = ogVideoUrl ?: findVideoUrlInHtml(html)
+        val videoUrl   = ogVideoUrl
 
         Log.d(TAG, "OG type=$ogType hasImage=${imageUrl != null} hasVideo=${videoUrl != null}")
 
@@ -385,9 +394,10 @@ class ThreadsScraper {
             ?: return info
 
         Log.d(TAG, "Carousel scan bucket=$bucket")
+        // Match all known CDN host patterns + both /v/ and /o1/v/ paths + jpg and webp images
         val bucketRegex = Regex(
-            """https://(?:scontent[^"'\s]*\.cdninstagram\.com|instagram\.[^"'\s]*\.fbcdn\.net)/v/""" +
-            Regex.escape(bucket) + """/[^"'\s]+\.jpg[^"'\s]*"""
+            """https://(?:(?:scontent|video)[^"'\s]*\.(?:cdninstagram\.com|fbcdn\.net)|instagram\.[^"'\s]*\.fbcdn\.net)/(?:o1/)?v/""" +
+            Regex.escape(bucket) + """/[^"'\s]+\.(?:jpg|webp)[^"'\s]*"""
         )
         val found = bucketRegex.findAll(html)
             .map { it.value.replace("&amp;", "&") }
