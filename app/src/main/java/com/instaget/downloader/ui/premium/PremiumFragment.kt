@@ -36,6 +36,10 @@ class PremiumFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Set subscribed header height to 25% of screen
+        val screenHeight = resources.displayMetrics.heightPixels
+        binding.subscribedHeader.layoutParams.height = (screenHeight * 0.25).toInt()
+
         // Default: Annual selected
         updatePlanSelection()
 
@@ -164,36 +168,28 @@ class PremiumFragment : Fragment() {
             }
             SubscriptionState.FREE -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
+                showFreeLayout()
                 updatePlanSelection()
             }
-            SubscriptionState.SUBSCRIBED_MONTHLY -> {
-                binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardMonthly.strokeColor = primary
-                binding.cardMonthly.strokeWidth = 6
-                binding.cardSemiAnnual.strokeWidth = 0
-                binding.cardAnnual.strokeWidth = 0
-                binding.btnSubscribe.text = "Monthly Plan Active"
-                binding.btnSubscribe.isEnabled = false
-            }
-            SubscriptionState.SUBSCRIBED_SEMI_ANNUAL -> {
-                binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardMonthly.strokeWidth = 0
-                binding.cardSemiAnnual.strokeColor = primary
-                binding.cardSemiAnnual.strokeWidth = 6
-                binding.cardAnnual.strokeWidth = 0
-                binding.btnSubscribe.text = "Semi-annual Plan Active"
-                binding.btnSubscribe.isEnabled = false
-            }
+            SubscriptionState.SUBSCRIBED_MONTHLY,
+            SubscriptionState.SUBSCRIBED_SEMI_ANNUAL,
             SubscriptionState.SUBSCRIBED_ANNUAL -> {
                 binding.billingLoadingIndicator.visibility = View.GONE
-                binding.cardMonthly.strokeWidth = 0
-                binding.cardSemiAnnual.strokeWidth = 0
-                binding.cardAnnual.strokeColor = primary
-                binding.cardAnnual.strokeWidth = 6
-                binding.btnSubscribe.text = "Annual Plan Active"
-                binding.btnSubscribe.isEnabled = false
+                showSubscribedLayout()
             }
         }
+    }
+
+    private fun showFreeLayout() {
+        binding.freeHeader.visibility = View.VISIBLE
+        binding.subscribedHeader.visibility = View.GONE
+        binding.subscriptionContent.visibility = View.VISIBLE
+    }
+
+    private fun showSubscribedLayout() {
+        binding.freeHeader.visibility = View.GONE
+        binding.subscribedHeader.visibility = View.VISIBLE
+        binding.subscriptionContent.visibility = View.GONE
     }
 
     override fun onDestroyView() {

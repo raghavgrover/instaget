@@ -5,8 +5,8 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowBackground">@color/backgroundColor</item>
-        <item name="android:statusBarColor">@color/backgroundColor</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/colorStatusBar</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="Theme.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">

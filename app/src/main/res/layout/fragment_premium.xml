@@ -10,8 +10,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Gradient Header -->
+        <!-- FREE state: compact horizontal header -->
         <LinearLayout
+            android:id="@+id/freeHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_premium_gradient"
@@ -37,6 +38,35 @@
 
         </LinearLayout>
 
+        <!-- SUBSCRIBED state: tall vertical header (height set to 25% of screen in code) -->
+        <LinearLayout
+            android:id="@+id/subscribedHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_premium_gradient"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@drawable/ic_crown"
+                android:contentDescription="@null"
+                android:layout_marginBottom="14dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="You are a Premium Member"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+        </LinearLayout>
+
         <!-- Loading indicator while fetching billing -->
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/billingLoadingIndicator"
@@ -46,7 +76,7 @@
             app:indicatorColor="@color/colorPrimary"
             app:trackCornerRadius="0dp" />
 
-        <!-- Feature bullets section -->
+        <!-- Feature bullets — always visible -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -132,229 +162,231 @@
 
         </LinearLayout>
 
-        <!-- Monthly Plan Card (no badge) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardMonthly"
+        <!-- Subscription content — hidden when user is subscribed -->
+        <LinearLayout
+            android:id="@+id/subscriptionContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="16dp"
-            android:clickable="true"
-            android:focusable="true"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface">
+            android:orientation="vertical">
 
-            <LinearLayout
+            <!-- Monthly Plan Card (no badge) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardMonthly"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="18dp">
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/surface">
 
-                <TextView
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/label_monthly_plan"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="18dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_monthly_plan"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvMonthlyPrice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="₹149"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 6 Months Plan Card wrapper: badge straddles top-right edge -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginTop="12dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSemiAnnual"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginTop="11dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingVertical="18dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/label_semi_annual_plan"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSemiAnnualPrice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="₹599"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="24sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
-                    android:id="@+id/tvMonthlyPrice"
+                    android:id="@+id/badgePopular"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="₹149"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="24sp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginEnd="22dp"
+                    android:elevation="8dp"
+                    android:background="@drawable/ic_popular_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="@string/label_popular"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
-            </LinearLayout>
+            </FrameLayout>
 
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 6 Months Plan Card wrapper: badge straddles the tile's top-right edge -->
-        <!-- No explicit background — transparent so parent #F8F8F8 shows through identically to Monthly -->
-        <!-- FrameLayout margin is 8dp; card adds another 8dp inside → total 16dp, same as Monthly -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="8dp"
-            android:layout_marginTop="12dp">
-
-            <!-- Card first (bottom layer): 8dp inner margin gives shadow room before wrapper edge -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardSemiAnnual"
+            <!-- Annual Plan Card wrapper: badge straddles top-right edge -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="8dp"
-                android:layout_marginTop="11dp"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/surface">
+                android:layout_marginTop="12dp">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardAnnual"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="18dp">
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginTop="11dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface">
 
-                    <TextView
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/label_semi_annual_plan"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingVertical="18dp">
 
-                    <TextView
-                        android:id="@+id/tvSemiAnnualPrice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹599"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/label_annual_plan"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
 
-                </LinearLayout>
+                        <TextView
+                            android:id="@+id/tvAnnualPrice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="₹999"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="24sp"
+                            android:textStyle="bold" />
 
-            </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
 
-            <!-- Badge after card (top layer): elevation > card elevation keeps it above -->
-            <!-- marginEnd = 8dp card margin + 14dp badge inset from card right edge -->
-            <TextView
-                android:id="@+id/badgePopular"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_marginEnd="22dp"
-                android:elevation="8dp"
-                android:background="@drawable/ic_popular_badge"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="@string/label_popular"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                </com.google.android.material.card.MaterialCardView>
 
-        </FrameLayout>
+                <TextView
+                    android:id="@+id/badgeBestValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginEnd="22dp"
+                    android:elevation="8dp"
+                    android:background="@drawable/ic_best_value_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="@string/label_save_50"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
 
-        <!-- Annual Plan Card wrapper: badge straddles the tile's top-right edge -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="8dp"
-            android:layout_marginTop="12dp">
+            </FrameLayout>
 
-            <!-- Card first (bottom layer) -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAnnual"
+            <!-- Single Subscribe Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSubscribe"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="8dp"
-                android:layout_marginTop="11dp"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/surface">
+                android:layout_height="52dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="20dp"
+                android:text="Subscribe Annually"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                app:backgroundTint="@color/colorPrimary"
+                app:cornerRadius="10dp" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="18dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/label_annual_plan"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvAnnualPrice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹999"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Badge after card (top layer) -->
+            <!-- Disclaimer -->
             <TextView
-                android:id="@+id/badgeBestValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_marginEnd="22dp"
-                android:elevation="8dp"
-                android:background="@drawable/ic_best_value_badge"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="@string/label_save_50"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/label_ongoing_offer"
+                android:textColor="@color/textSecondary"
+                android:textSize="11sp" />
 
-        </FrameLayout>
+            <!-- Restore Purchases -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestore"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:layout_marginHorizontal="16dp"
+                android:text="@string/btn_restore_purchases"
+                android:textColor="@color/colorPrimary" />
 
-        <!-- Single Subscribe Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSubscribe"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="20dp"
-            android:text="Subscribe Annually"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            app:backgroundTint="@color/colorPrimary"
-            app:cornerRadius="10dp" />
+        </LinearLayout>
 
-        <!-- Disclaimer -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/label_ongoing_offer"
-            android:textColor="@color/textSecondary"
-            android:textSize="11sp" />
-
-        <!-- Restore Purchases -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRestore"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:layout_marginHorizontal="16dp"
-            android:text="@string/btn_restore_purchases"
-            android:textColor="@color/colorPrimary" />
-
-        <!-- Terms / Privacy -->
+        <!-- Terms / Privacy — always visible -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="32dp"
             android:layout_marginHorizontal="16dp"
             android:text="@string/label_terms_privacy"
