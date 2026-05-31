@@ -252,6 +252,19 @@ class HomeFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Pick up any Instagram URL shared to the app via the share sheet
+        val prefs = requireContext().getSharedPreferences("share_prefs", Context.MODE_PRIVATE)
+        val pendingUrl = prefs.getString("pending_ig_url", null)
+        if (!pendingUrl.isNullOrBlank()) {
+            prefs.edit().remove("pending_ig_url").apply()
+            binding.etUrl.setText(pendingUrl)
+            // Auto-trigger download after the view settles
+            binding.root.post { binding.btnDownload.performClick() }
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

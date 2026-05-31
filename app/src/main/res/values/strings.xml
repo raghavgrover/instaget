@@ -28,6 +28,7 @@
     <string name="label_filter_photos">Photos</string>
     <string name="label_filter_videos">Videos</string>
     <string name="label_delete_confirm">Delete this download?</string>
+    <string name="label_delete_gallery_note">This will also remove the file from your gallery.</string>
     <string name="label_delete">Delete</string>
     <string name="label_cancel">Cancel</string>
     <string name="label_share">Share</string>

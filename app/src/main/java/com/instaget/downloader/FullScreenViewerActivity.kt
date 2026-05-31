@@ -16,7 +16,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -304,8 +304,9 @@ class FullScreenViewerActivity : AppCompatActivity() {
     }
 
     private fun confirmDelete() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this, R.style.RoundedAlertDialog)
             .setTitle(R.string.label_delete_confirm)
+            .setMessage(R.string.label_delete_gallery_note)
             .setPositiveButton(R.string.label_delete) { _, _ ->
                 lifecycleScope.launch {
                     withContext(Dispatchers.IO) {

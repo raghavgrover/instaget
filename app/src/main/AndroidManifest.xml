@@ -12,6 +12,7 @@
 
     <queries>
         <package android:name="com.instagram.android" />
+        <package android:name="com.instagram.threads" />
     </queries>
 
     <application
@@ -49,6 +50,8 @@
         <activity
             android:name=".ShareReceiverActivity"
             android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.Transparent">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

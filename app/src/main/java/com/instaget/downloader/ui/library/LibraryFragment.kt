@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -85,8 +85,9 @@ class LibraryFragment : Fragment() {
 
     private fun showDeleteDialog(libraryItem: LibraryItem) {
         val item = libraryItem.mediaItem
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext(), R.style.RoundedAlertDialog)
             .setTitle(R.string.label_delete_confirm)
+            .setMessage(R.string.label_delete_gallery_note)
             .setPositiveButton(R.string.label_delete) { _, _ ->
                 viewModel.delete(item)
             }

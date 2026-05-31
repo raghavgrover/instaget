@@ -18,6 +18,21 @@
         <item name="android:navigationBarColor">@color/colorPrimary</item>
     </style>
 
+    <!-- Delete confirmation dialog — rounded corners + slightly smaller title -->
+    <style name="RoundedAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.App.RoundedDialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleText</item>
+    </style>
+
+    <style name="ShapeAppearance.App.RoundedDialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="AlertDialogTitleText" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textSize">15sp</item>
+    </style>
+
     <style name="Theme.Transparent" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>

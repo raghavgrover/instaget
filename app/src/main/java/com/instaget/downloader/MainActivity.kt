@@ -69,8 +69,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNavigateIntent(intent: android.content.Intent?, navController: androidx.navigation.NavController) {
-        if (intent?.getStringExtra("navigate_to") == "library") {
-            navController.navigate(R.id.libraryFragment)
+        when (intent?.getStringExtra("navigate_to")) {
+            "library" -> navController.navigate(R.id.libraryFragment)
+            "home"    -> navController.navigate(R.id.homeFragment)
         }
     }
 }
