@@ -123,32 +123,7 @@
 
             </LinearLayout>
 
-            <!-- Bullet 2 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingVertical="8dp">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_feature_tick"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="12dp"
-                    android:text="Download from Threads"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="15sp" />
-
-            </LinearLayout>
-
-            <!-- Bullet 3 -->
+            <!-- Bullet 2 (was Bullet 3) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

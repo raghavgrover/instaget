@@ -22,26 +22,26 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import java.util.concurrent.TimeUnit
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.instaget.downloader.R
+import com.google.android.material.snackbar.Snackbar
+import com.instaget.downloader.ads.AdConfig
+import com.instaget.downloader.ads.CreditsManager
+import com.instaget.downloader.ads.RewardedInterstitialManager
 import com.instaget.downloader.billing.BillingManager
 import com.instaget.downloader.data.MediaInfo
-import com.instaget.downloader.data.db.AppDatabase
 import com.instaget.downloader.databinding.FragmentHomeBinding
-import com.instaget.downloader.databinding.BottomSheetFreeLimitBinding
 import com.instaget.downloader.worker.DownloadWorker
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class HomeFragment : Fragment() {
 
-    companion object {
-        private const val FREE_DOWNLOAD_LIMIT = 10
-    }
-
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+    private lateinit var rewardedAdManager: RewardedInterstitialManager
+    private var bannerAdView: com.google.android.gms.ads.AdView? = null
     private val viewModel: HomeViewModel by viewModels()
     private var pendingMediaInfo: MediaInfo? = null
 
@@ -70,21 +70,33 @@ class HomeFragment : Fragment() {
             else Snackbar.make(binding.root, "Clipboard is empty", Snackbar.LENGTH_SHORT).show()
         }
 
+        // Set up ads infrastructure (credits replace the old 10-download hard limit)
+        rewardedAdManager = RewardedInterstitialManager(requireContext())
+        rewardedAdManager.preload()
+        updateCreditsDisplay()
+
+        val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
+        if (!isPremium) {
+            // Official Google approach: create AdView in code, set adUnitId FIRST,
+            // then setAdSize, then addView to container, then loadAd.
+            val adWidth = (resources.displayMetrics.widthPixels /
+                    resources.displayMetrics.density).toInt()
+            val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
+            bannerAdView = com.google.android.gms.ads.AdView(requireContext()).apply {
+                adUnitId = AdConfig.BANNER_IG
+                setAdSize(adSize)
+            }
+            binding.adContainer.removeAllViews()
+            binding.adContainer.addView(bannerAdView)
+            binding.adContainer.visibility = View.VISIBLE
+            bannerAdView?.loadAd(AdRequest.Builder().build())
+        }
+
+        binding.tvCredits.setOnClickListener { showCreditsInfoDialog() }
+
         binding.btnDownload.setOnClickListener {
             val url = binding.etUrl.text?.toString()?.trim() ?: ""
-            lifecycleScope.launch {
-                val billing = BillingManager.getInstance(requireContext())
-                if (!billing.isUserSubscribed()) {
-                    val count = withContext(Dispatchers.IO) {
-                        AppDatabase.getInstance(requireContext()).mediaDao().getCount()
-                    }
-                    if (count >= FREE_DOWNLOAD_LIMIT) {
-                        showFreeLimitSheet()
-                        return@launch
-                    }
-                }
-                viewModel.fetchMedia(url)
-            }
+            viewModel.fetchMedia(url)
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -108,7 +120,12 @@ class HomeFragment : Fragment() {
                         binding.tvStatus.visibility = View.VISIBLE
                         binding.tvStatus.text = "@${info.username} · ${info.mediaType.replaceFirstChar { it.uppercase() }}"
                         pendingMediaInfo = info
-                        proceedWithPermissionCheck(info)
+                        // Gate: show rewarded ad first if 0 credits, then start download
+                        val isPremiumNow = BillingManager.getInstance(requireContext()).isUserSubscribed()
+                        rewardedAdManager.gateDownload(requireActivity(), isPremiumNow,
+                            onCreditsUpdated = { updateCreditsDisplay() },
+                            onProceed = { proceedWithPermissionCheck(info) }
+                        )
                         viewModel.reset()
                     }
                     is ScrapeState.AlreadyDownloaded -> {
@@ -130,19 +147,6 @@ class HomeFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun showFreeLimitSheet() {
-        val dialog = BottomSheetDialog(requireContext())
-        val sheetBinding = BottomSheetFreeLimitBinding.inflate(layoutInflater)
-        dialog.setContentView(sheetBinding.root)
-        sheetBinding.btnViewPlans.setOnClickListener {
-            dialog.dismiss()
-            requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
-                com.instaget.downloader.R.id.bottomNavigationView
-            )?.selectedItemId = com.instaget.downloader.R.id.premiumFragment
-        }
-        dialog.show()
     }
 
     private fun proceedWithPermissionCheck(info: MediaInfo) {
@@ -237,6 +241,10 @@ class HomeFragment : Fragment() {
                                 binding.tvStatus.text = msg
                                 binding.etUrl.text?.clear()
                                 Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
+                                // Consume 1 credit now that download succeeded
+                                val premium = BillingManager.getInstance(requireContext()).isUserSubscribed()
+                                rewardedAdManager.onDownloadSucceeded(premium)
+                                updateCreditsDisplay()
                             }
                             WorkInfo.State.FAILED -> {
                                 binding.progressIndicator.visibility = View.GONE
@@ -252,21 +260,70 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun showCreditsInfoDialog() {
+        val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
+        val balance = CreditsManager.getCredits(requireContext())
+        val message = if (isPremium) {
+            "You're a Premium Member — enjoy unlimited downloads with no ads! 🎉"
+        } else {
+            val statusLine = when {
+                balance > 3 -> "You have $balance credits. You're good to go! 👍"
+                balance > 0 -> "You have $balance credit${if (balance == 1) "" else "s"} left — running low!"
+                else        -> "You're out of credits. Watch a short ad after your next download to earn more."
+            }
+            """$statusLine
+
+Each download uses 1 credit. When you run out, a short ad plays after the download — watch it fully to earn 2 more credits.
+
+You started with 10 free credits. Credits are yours to keep — they never expire.
+
+Go Premium to skip ads entirely and download without limits.
+"""
+        }
+        val builder = MaterialAlertDialogBuilder(requireContext(), R.style.RoundedAlertDialog)
+            .setTitle("⚡ Download Credits")
+            .setMessage(message)
+            .setPositiveButton("Got it", null)
+        if (!isPremium) {
+            builder.setNegativeButton("Go Premium") { _, _ ->
+                requireActivity()
+                    .findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+                        R.id.bottomNavigationView
+                    )?.selectedItemId = R.id.premiumFragment
+            }
+        }
+        val dialog = builder.show()
+        // Style Go Premium button: purple background, white text
+        if (!isPremium) {
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)?.apply {
+                setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
+            }
+        }
+    }
+
+    private fun updateCreditsDisplay() {
+        val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
+        binding.tvCredits.text = "⚡ ${CreditsManager.displayString(requireContext(), isPremium)}"
+    }
+
     override fun onResume() {
         super.onResume()
+        updateCreditsDisplay()
         // Pick up any Instagram URL shared to the app via the share sheet
         val prefs = requireContext().getSharedPreferences("share_prefs", Context.MODE_PRIVATE)
         val pendingUrl = prefs.getString("pending_ig_url", null)
         if (!pendingUrl.isNullOrBlank()) {
             prefs.edit().remove("pending_ig_url").apply()
             binding.etUrl.setText(pendingUrl)
-            // Auto-trigger download after the view settles
             binding.root.post { binding.btnDownload.performClick() }
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        bannerAdView?.destroy()
+        bannerAdView = null
         _binding = null
     }
 }

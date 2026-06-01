@@ -1,6 +1,7 @@
 package com.instaget.downloader.ui.library
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.instaget.downloader.data.db.AppDatabase
@@ -39,11 +40,16 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
 
     fun delete(item: MediaItem) {
         viewModelScope.launch {
+            val resolver = getApplication<Application>().contentResolver
             if (item.shortcode.isNotBlank()) {
                 // Delete all items belonging to this carousel/post
-                dao.getAllByShortcode(item.shortcode).forEach { dao.delete(it) }
+                dao.getAllByShortcode(item.shortcode).forEach {
+                    dao.delete(it)
+                    try { resolver.delete(Uri.parse(it.localPath), null, null) } catch (_: Exception) {}
+                }
             } else {
                 dao.delete(item)
+                try { resolver.delete(Uri.parse(item.localPath), null, null) } catch (_: Exception) {}
             }
         }
     }

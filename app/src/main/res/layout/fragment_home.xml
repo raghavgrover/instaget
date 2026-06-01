@@ -31,11 +31,27 @@
                 android:src="@mipmap/ic_launcher_round"
                 android:contentDescription="@string/app_short_name" />
         </LinearLayout>
+        <TextView
+            android:id="@+id/tvCredits"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="12dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/bg_credits_badge"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="⚡ 10"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </androidx.appcompat.widget.Toolbar>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true">
 
         <LinearLayout
@@ -128,5 +144,12 @@
         </LinearLayout>
 
     </ScrollView>
+
+    <!-- Adaptive banner is created and added programmatically — see HomeFragment -->
+    <FrameLayout
+        android:id="@+id/adContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
 </LinearLayout>

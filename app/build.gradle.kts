@@ -24,21 +24,34 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val admobAppId = localProps.getProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
+        val adBannerIg = localProps.getProperty("AD_BANNER_IG") ?: "ca-app-pub-3940256099942544/6300978111"
+        val adBannerThreads = localProps.getProperty("AD_BANNER_THREADS") ?: "ca-app-pub-3940256099942544/6300978111"
+        val adRewarded = localProps.getProperty("AD_REWARDED_INTERSTITIAL") ?: "ca-app-pub-3940256099942544/5354046379"
+        val adNativeThreads = localProps.getProperty("AD_NATIVE_THREADS") ?: "ca-app-pub-3940256099942544/2247696110"
+        manifestPlaceholders["admobAppId"] = admobAppId
+        buildConfigField("String", "AD_BANNER_IG", "\"$adBannerIg\"")
+        buildConfigField("String", "AD_BANNER_THREADS", "\"$adBannerThreads\"")
+        buildConfigField("String", "AD_REWARDED_INTERSTITIAL", "\"$adRewarded\"")
+        buildConfigField("String", "AD_NATIVE_THREADS", "\"$adNativeThreads\"")
     }
 
     signingConfigs {
-        create("release") {
-            storeFile     = file(localProps.getProperty("RELEASE_STORE_FILE"))
-            storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD")
-            keyAlias      = localProps.getProperty("RELEASE_KEY_ALIAS")
-            keyPassword   = localProps.getProperty("RELEASE_KEY_PASSWORD")
+        val releaseStoreFile = localProps.getProperty("RELEASE_STORE_FILE")
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile     = file(releaseStoreFile)
+                storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias      = localProps.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword   = localProps.getProperty("RELEASE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -54,6 +67,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -107,6 +121,10 @@ dependencies {
 
     // ViewPager2
     implementation("androidx.viewpager2:viewpager2:1.0.0")
+
+    // AdMob + UMP
+    implementation("com.google.android.gms:play-services-ads:23.3.0")
+    implementation("com.google.android.ump:user-messaging-platform:3.1.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
