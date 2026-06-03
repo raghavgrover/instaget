@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.premium
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -128,6 +129,9 @@ class PremiumFragment : Fragment() {
             }
         }
 
+        binding.tvTerms.setOnClickListener { openWebView("Terms of Use", R.string.url_terms_of_use) }
+        binding.tvPrivacy.setOnClickListener { openWebView("Privacy Policy", R.string.url_privacy_policy) }
+
         binding.btnRestore.setOnClickListener {
             viewModel.restorePurchases { active ->
                 val msg = if (active) getString(R.string.label_subscription_restored)
@@ -221,6 +225,16 @@ class PremiumFragment : Fragment() {
         } else {
             binding.tvCancellationNotice.visibility = View.GONE
         }
+    }
+
+    private fun openWebView(title: String, urlResId: Int) {
+        val url = getString(urlResId)
+        startActivity(
+            Intent(requireContext(), com.instaget.downloader.WebViewActivity::class.java).apply {
+                putExtra(com.instaget.downloader.WebViewActivity.EXTRA_URL, url)
+                putExtra(com.instaget.downloader.WebViewActivity.EXTRA_TITLE, title)
+            }
+        )
     }
 
     override fun onDestroyView() {

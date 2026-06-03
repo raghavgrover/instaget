@@ -25,6 +25,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import androidx.navigation.fragment.findNavController
 import com.google.android.gms.ads.AdRequest
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -92,6 +93,7 @@ class ThreadsFragment : Fragment() {
         }
 
         binding.tvCredits.setOnClickListener { showCreditsInfoDialog() }
+        binding.ivHelp.setOnClickListener { findNavController().navigate(R.id.helpFragment) }
 
         // Fetch & Download
         binding.btnFetch.setOnClickListener {

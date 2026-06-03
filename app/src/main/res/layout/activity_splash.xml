@@ -10,7 +10,7 @@
         android:id="@+id/ivLogo"
         android:layout_width="96dp"
         android:layout_height="96dp"
-        android:src="@drawable/ic_download_arrow"
+        android:src="@mipmap/instaget_app_icon"
         android:alpha="0"
         android:scaleX="0.5"
         android:scaleY="0.5"

@@ -33,6 +33,9 @@
     <string name="label_cancel">Cancel</string>
     <string name="label_share">Share</string>
     <string name="label_terms_privacy">Terms of Use · Privacy Policy</string>
+    <!-- Replace with your real hosted URLs when ready -->
+    <string name="url_terms_of_use">https://saanidhyasoftware.lovable.app/instaget/terms</string>
+    <string name="url_privacy_policy">https://saanidhyasoftware.lovable.app/instaget/privacy</string>
     <string name="label_subscription_restored">Subscription restored!</string>
     <string name="label_no_active_subscription">No active subscription found</string>
     <string name="label_go_premium">Go Premium</string>

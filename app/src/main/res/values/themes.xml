@@ -12,10 +12,12 @@
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
-    <style name="Theme.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="android:windowBackground">@color/colorPrimary</item>
-        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
-        <item name="android:navigationBarColor">@color/colorPrimary</item>
+    <!-- SplashScreen theme: uses core-splashscreen so Android 12+ system splash
+         is dismissed instantly, leaving only our custom SplashActivity visible. -->
+    <style name="Theme.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/colorPrimary</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/instaget_app_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.InstaGet</item>
     </style>
 
     <!-- Delete confirmation dialog — rounded corners + slightly smaller title -->

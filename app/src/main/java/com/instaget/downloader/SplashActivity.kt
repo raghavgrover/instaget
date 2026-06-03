@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.animation.OvershootInterpolator
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.instaget.downloader.databinding.ActivitySplashBinding
 
 class SplashActivity : AppCompatActivity() {
@@ -11,6 +12,9 @@ class SplashActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySplashBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Dismiss the Android 12+ system splash instantly — only our custom
+        // SplashActivity animation will be visible.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)

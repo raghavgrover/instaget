@@ -382,17 +382,47 @@
             android:textColor="@color/colorPrimary"
             android:visibility="gone" />
 
-        <!-- Terms / Privacy — always visible, very last item -->
-        <TextView
+        <!-- Terms / Privacy — always visible, very last item. Each is individually clickable. -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="32dp"
             android:layout_marginHorizontal="16dp"
-            android:text="@string/label_terms_privacy"
-            android:textColor="@color/colorPrimary"
-            android:textSize="12sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvTerms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Terms of Use"
+                android:textColor="@color/colorPrimary"
+                android:textSize="12sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" · "
+                android:textColor="@color/colorPrimary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvPrivacy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Privacy Policy"
+                android:textColor="@color/colorPrimary"
+                android:textSize="12sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

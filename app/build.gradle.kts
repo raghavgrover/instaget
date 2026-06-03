@@ -74,6 +74,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")

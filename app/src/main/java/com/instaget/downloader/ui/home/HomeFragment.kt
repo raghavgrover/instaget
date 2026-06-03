@@ -22,6 +22,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import java.util.concurrent.TimeUnit
+import androidx.navigation.fragment.findNavController
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -93,6 +94,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.tvCredits.setOnClickListener { showCreditsInfoDialog() }
+        binding.ivHelp.setOnClickListener { findNavController().navigate(R.id.helpFragment) }
 
         binding.btnDownload.setOnClickListener {
             val url = binding.etUrl.text?.toString()?.trim() ?: ""

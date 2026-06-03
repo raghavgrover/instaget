@@ -29,4 +29,10 @@
         android:label="Premium"
         tools:layout="@layout/fragment_premium" />
 
+    <fragment
+        android:id="@+id/helpFragment"
+        android:name="com.instaget.downloader.ui.help.HelpFragment"
+        android:label="Help"
+        tools:layout="@layout/fragment_help" />
+
 </navigation>
