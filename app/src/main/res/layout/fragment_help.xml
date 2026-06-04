@@ -87,16 +87,23 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="16dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
-                        <TextView
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#44FFFFFF"
+                            android:layout_marginBottom="12dp" />
+
+                        <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Instructions and screenshots coming soon."
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="14sp" />
+                            android:src="@drawable/help_q1"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:contentDescription="@null" />
 
                     </LinearLayout>
 
@@ -153,16 +160,23 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="16dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
-                        <TextView
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#44FFFFFF"
+                            android:layout_marginBottom="12dp" />
+
+                        <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Instructions and screenshots coming soon."
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="14sp" />
+                            android:src="@drawable/help_q2"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:contentDescription="@null" />
 
                     </LinearLayout>
 
@@ -219,16 +233,23 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="16dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
-                        <TextView
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#44FFFFFF"
+                            android:layout_marginBottom="12dp" />
+
+                        <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Instructions and screenshots coming soon."
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="14sp" />
+                            android:src="@drawable/help_q3"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:contentDescription="@null" />
 
                     </LinearLayout>
 
@@ -265,7 +286,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="How to download directly by sharing the Instagram post to the Threads App?"
+                            android:text="How to download directly by sharing the Threads post to the InstaGet app?"
                             android:textColor="@color/white"
                             android:textSize="15sp"
                             android:textStyle="bold"
@@ -285,16 +306,23 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="16dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
-                        <TextView
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#44FFFFFF"
+                            android:layout_marginBottom="12dp" />
+
+                        <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Instructions and screenshots coming soon."
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="14sp" />
+                            android:src="@drawable/help_q4"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:contentDescription="@null" />
 
                     </LinearLayout>
 
