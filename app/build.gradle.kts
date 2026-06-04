@@ -21,8 +21,8 @@ android {
         applicationId = "com.instaget.downloader"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val admobAppId = localProps.getProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
         val adBannerIg = localProps.getProperty("AD_BANNER_IG") ?: "ca-app-pub-3940256099942544/6300978111"
