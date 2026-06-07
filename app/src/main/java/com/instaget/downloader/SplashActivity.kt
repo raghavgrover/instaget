@@ -45,7 +45,12 @@ class SplashActivity : AppCompatActivity() {
             .setDuration(400L)
             .withEndAction {
                 binding.root.postDelayed({
-                    startActivity(Intent(this, MainActivity::class.java))
+                    val nextActivity = if (WelcomeActivity.isTermsAccepted(this)) {
+                        MainActivity::class.java
+                    } else {
+                        WelcomeActivity::class.java
+                    }
+                    startActivity(Intent(this, nextActivity))
                     finish()
                 }, 1500L)
             }

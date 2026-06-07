@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">InstaGet - Instagram Downloader</string>
     <string name="app_short_name">InstaGet</string>
-    <string name="tagline">Download anything from Instagram</string>
+    <string name="tagline">Save media from Instagram and Threads</string>
     <string name="nav_home">Home</string>
     <string name="nav_threads">Threads</string>
     <string name="nav_library">Library</string>

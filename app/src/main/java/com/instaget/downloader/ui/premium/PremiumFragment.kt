@@ -72,21 +72,21 @@ class PremiumFragment : Fragment() {
                 ?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.firstOrNull()
                 ?.formattedPrice
-                ?.let { binding.tvMonthlyPrice.text = it }
+                ?.let { binding.tvMonthlyPrice.text = cleanPrice(it) }
 
             // Semi-annual
             viewModel.getSemiAnnualProductDetails()
                 ?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.firstOrNull()
                 ?.formattedPrice
-                ?.let { binding.tvSemiAnnualPrice.text = it }
+                ?.let { binding.tvSemiAnnualPrice.text = cleanPrice(it) }
 
             // Annual
             viewModel.getAnnualProductDetails()
                 ?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.firstOrNull()
                 ?.formattedPrice
-                ?.let { binding.tvAnnualPrice.text = it }
+                ?.let { binding.tvAnnualPrice.text = cleanPrice(it) }
         }
 
         // Card tap — select plan
@@ -225,6 +225,17 @@ class PremiumFragment : Fragment() {
         } else {
             binding.tvCancellationNotice.visibility = View.GONE
         }
+    }
+
+    /**
+     * Strip trailing zero-decimals from a Play Store formatted price.
+     * Examples:  "₹149.00" → "₹149"   "$1.49" → "$1.49"   "€2,00" → "€2"
+     * Locale-safe: handles both "." and "," as the decimal separator.
+     */
+    private fun cleanPrice(price: String): String {
+        // Match a decimal separator followed by ONLY zeros, at the end of the price
+        // (allow optional trailing currency code/symbol after the digits).
+        return Regex("""([.,])0+(?=\D|$)""").replace(price, "")
     }
 
     private fun openWebView(title: String, urlResId: Int) {
