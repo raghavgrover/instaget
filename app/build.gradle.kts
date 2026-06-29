@@ -21,8 +21,8 @@ android {
         applicationId = "com.instaget.downloader"
         minSdk = 28
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val admobAppId = localProps.getProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
         val adBannerIg = localProps.getProperty("AD_BANNER_IG") ?: "ca-app-pub-3940256099942544/6300978111"
@@ -50,7 +50,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
