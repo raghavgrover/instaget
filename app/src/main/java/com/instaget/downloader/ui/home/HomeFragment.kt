@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,8 +26,10 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import java.util.concurrent.TimeUnit
 import androidx.navigation.fragment.findNavController
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.instaget.downloader.R
 import com.google.android.material.snackbar.Snackbar
@@ -45,6 +50,15 @@ class HomeFragment : Fragment() {
     private var bannerAdView: com.google.android.gms.ads.AdView? = null
     private val viewModel: HomeViewModel by viewModels()
     private var pendingMediaInfo: MediaInfo? = null
+
+    private val bannerRetryHandler = Handler(Looper.getMainLooper())
+    private var bannerRetryRunnable: Runnable? = null
+    private var bannerRetryAttempt = 0
+
+    companion object {
+        private const val TAG = "BannerAd"
+        private val BANNER_RETRY_DELAYS_MS = longArrayOf(15_000, 30_000, 60_000)
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -72,25 +86,13 @@ class HomeFragment : Fragment() {
         }
 
         // Set up ads infrastructure (credits replace the old 10-download hard limit)
-        rewardedAdManager = RewardedInterstitialManager(requireContext())
+        rewardedAdManager = RewardedInterstitialManager.getInstance(requireContext())
         rewardedAdManager.preload()
         updateCreditsDisplay()
 
         val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
         if (!isPremium) {
-            // Official Google approach: create AdView in code, set adUnitId FIRST,
-            // then setAdSize, then addView to container, then loadAd.
-            val adWidth = (resources.displayMetrics.widthPixels /
-                    resources.displayMetrics.density).toInt()
-            val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
-            bannerAdView = com.google.android.gms.ads.AdView(requireContext()).apply {
-                adUnitId = AdConfig.BANNER_IG
-                setAdSize(adSize)
-            }
-            binding.adContainer.removeAllViews()
-            binding.adContainer.addView(bannerAdView)
-            binding.adContainer.visibility = View.VISIBLE
-            bannerAdView?.loadAd(AdRequest.Builder().build())
+            loadBannerAd()
         }
 
         binding.tvCredits.setOnClickListener { showCreditsInfoDialog() }
@@ -201,8 +203,10 @@ class HomeFragment : Fragment() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
+        val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
 
         itemsToDownload.forEachIndexed { index, (url, filename, mediaType) ->
+            val isLastItem = index == itemsToDownload.lastIndex
             val request = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
@@ -215,14 +219,18 @@ class HomeFragment : Fragment() {
                         DownloadWorker.KEY_MEDIA_TYPE to mediaType,
                         DownloadWorker.KEY_THUMBNAIL_URL to (info.thumbnailUrl ?: ""),
                         DownloadWorker.KEY_USERNAME to info.username,
-                        DownloadWorker.KEY_CAPTION to info.caption
+                        DownloadWorker.KEY_CAPTION to info.caption,
+                        // 1 credit per download action, not per carousel item — charged by the
+                        // worker itself (atomic with the save) on whichever item finishes last.
+                        DownloadWorker.KEY_CONSUME_CREDIT to isLastItem,
+                        DownloadWorker.KEY_IS_PREMIUM to isPremium
                     )
                 )
                 .build()
 
             workManager.enqueue(request)
 
-            if (index == itemsToDownload.lastIndex) {
+            if (isLastItem) {
                 workManager.getWorkInfoByIdLiveData(request.id)
                     .observe(viewLifecycleOwner) { workInfo ->
                         if (workInfo == null) return@observe
@@ -243,9 +251,6 @@ class HomeFragment : Fragment() {
                                 binding.tvStatus.text = msg
                                 binding.etUrl.text?.clear()
                                 Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
-                                // Consume 1 credit now that download succeeded
-                                val premium = BillingManager.getInstance(requireContext()).isUserSubscribed()
-                                rewardedAdManager.onDownloadSucceeded(premium)
                                 updateCreditsDisplay()
                             }
                             WorkInfo.State.FAILED -> {
@@ -322,8 +327,48 @@ Go Premium to skip ads entirely and download without limits.
         }
     }
 
+    private fun loadBannerAd() {
+        // Official Google approach: create AdView in code, set adUnitId FIRST,
+        // then setAdSize, then addView to container, then loadAd.
+        val adWidth = (resources.displayMetrics.widthPixels /
+                resources.displayMetrics.density).toInt()
+        val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
+        val adView = com.google.android.gms.ads.AdView(requireContext()).apply {
+            adUnitId = AdConfig.BANNER_IG
+            setAdSize(adSize)
+            adListener = object : AdListener() {
+                override fun onAdLoaded() {
+                    bannerRetryAttempt = 0
+                    Log.d(TAG, "Banner loaded")
+                }
+                override fun onAdFailedToLoad(err: LoadAdError) {
+                    Log.w(TAG, "Banner failed to load: code=${err.code} message=${err.message}")
+                    scheduleBannerRetry()
+                }
+            }
+        }
+        bannerAdView = adView
+        binding.adContainer.removeAllViews()
+        binding.adContainer.addView(adView)
+        binding.adContainer.visibility = View.VISIBLE
+        adView.loadAd(AdRequest.Builder().build())
+    }
+
+    private fun scheduleBannerRetry() {
+        val delay = BANNER_RETRY_DELAYS_MS[bannerRetryAttempt.coerceAtMost(BANNER_RETRY_DELAYS_MS.lastIndex)]
+        bannerRetryAttempt++
+        val runnable = Runnable {
+            if (_binding == null) return@Runnable
+            bannerAdView?.loadAd(AdRequest.Builder().build())
+        }
+        bannerRetryRunnable = runnable
+        bannerRetryHandler.postDelayed(runnable, delay)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        bannerRetryRunnable?.let { bannerRetryHandler.removeCallbacks(it) }
+        bannerRetryRunnable = null
         bannerAdView?.destroy()
         bannerAdView = null
         _binding = null

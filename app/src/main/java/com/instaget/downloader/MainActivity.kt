@@ -15,7 +15,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
-import com.google.android.gms.ads.MobileAds
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import com.instaget.downloader.billing.BillingManager
@@ -55,9 +54,9 @@ class MainActivity : AppCompatActivity() {
 
         BillingManager.getInstance(this)
 
-        // Initialise AdMob immediately (required before loading any ads)
-        MobileAds.initialize(this) { Log.d("AdMob", "Initialized") }
-        // Then handle UMP consent for GDPR regions (non-blocking for non-EU)
+        // AdMob SDK is initialised in InstaGetApplication.onCreate() — guaranteed to run
+        // before any Activity/Fragment, so ad requests never race SDK init.
+        // Handle UMP consent for GDPR regions here (needs an Activity for the consent form).
         initConsentAndAds()
 
         val navHostFragment = supportFragmentManager
@@ -78,9 +77,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Requests consent info (UMP / GDPR), shows a consent form if required,
-     * then initialises the AdMob SDK. Safe for non-EU users — the form is
-     * skipped automatically by the UMP SDK when not required.
+     * Requests consent info (UMP / GDPR) and shows a consent form if required.
+     * Safe for non-EU users — the form is skipped automatically by the UMP SDK
+     * when not required. AdMob SDK init happens separately in InstaGetApplication.
      */
     private fun initConsentAndAds() {
         val params = ConsentRequestParameters.Builder()
@@ -97,10 +96,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNavigateIntent(intent: android.content.Intent?, navController: androidx.navigation.NavController) {
-        when (intent?.getStringExtra("navigate_to")) {
-            "library" -> navController.navigate(R.id.libraryFragment)
-            "home"    -> navController.navigate(R.id.homeFragment)
-            "threads" -> navController.navigate(R.id.threadsFragment)
+        val destinationId = when (intent?.getStringExtra("navigate_to")) {
+            "library" -> R.id.libraryFragment
+            "home"    -> R.id.homeFragment
+            "threads" -> R.id.threadsFragment
+            else -> return
         }
+        // Same NavOptions the bottom nav itself uses (via NavigationUI) — popping up to the
+        // start destination and reusing saved state avoids stacking a duplicate fragment
+        // instance on top of one already in the back stack.
+        val navOptions = androidx.navigation.NavOptions.Builder()
+            .setPopUpTo(navController.graph.startDestinationId, false, true)
+            .setLaunchSingleTop(true)
+            .setRestoreState(true)
+            .build()
+        navController.navigate(destinationId, null, navOptions)
     }
 }

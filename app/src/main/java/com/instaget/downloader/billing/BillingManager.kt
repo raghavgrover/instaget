@@ -62,7 +62,11 @@ class BillingManager private constructor(private val context: Context) {
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(purchasesUpdatedListener)
-        .enablePendingPurchases()
+        // enableOneTimeProducts() is required by PendingPurchasesParams.Builder.build() in 8.x
+        // even though this app only sells subscriptions — it throws IllegalArgumentException
+        // ("Pending purchases for one-time products must be supported") without it.
+        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+        .enableAutoServiceReconnection()
         .build()
 
     init {
@@ -122,7 +126,8 @@ class BillingManager private constructor(private val context: Context) {
             .build()
 
         return suspendCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { _, productDetailsList ->
+            billingClient.queryProductDetailsAsync(params) { _, result ->
+                val productDetailsList = result.productDetailsList
                 productDetailsList.forEach { pd ->
                     when (pd.productId) {
                         MONTHLY_SKU -> monthlyProductDetails = pd

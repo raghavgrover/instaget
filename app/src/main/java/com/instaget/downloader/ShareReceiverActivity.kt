@@ -60,9 +60,17 @@ class ShareReceiverActivity : AppCompatActivity() {
             getSharedPreferences(PREFS_SHARE, Context.MODE_PRIVATE)
                 .edit().putString(prefsKey, url).apply()
 
+            // ShareReceiverActivity runs in its own task (launched externally by
+            // Instagram/Threads), so NEW_TASK + CLEAR_TOP is required to reliably land back
+            // on the existing MainActivity instance instead of spawning a competing one —
+            // SINGLE_TOP + REORDER_TO_FRONT alone only dedupes within the *same* task.
             startActivity(
                 Intent(this@ShareReceiverActivity, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
                     putExtra("navigate_to", navigateTo)
                 }
             )

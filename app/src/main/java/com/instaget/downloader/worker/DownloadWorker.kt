@@ -19,6 +19,7 @@ import androidx.work.workDataOf
 import kotlinx.coroutines.CancellationException
 import java.net.UnknownHostException
 import com.instaget.downloader.R
+import com.instaget.downloader.ads.CreditsManager
 import com.instaget.downloader.data.db.AppDatabase
 import com.instaget.downloader.data.db.MediaItem
 import okhttp3.OkHttpClient
@@ -46,6 +47,8 @@ class DownloadWorker(
         const val KEY_NOTIFY_ON_COMPLETE = "notifyOnComplete"
         const val KEY_REFERER = "referer"
         const val KEY_COOKIE = "cookie"
+        const val KEY_CONSUME_CREDIT = "consumeCredit"
+        const val KEY_IS_PREMIUM = "isPremium"
         private const val TAG = "DownloadWorker"
         private const val CHANNEL_ID = "fetchin_downloads"
     }
@@ -121,6 +124,14 @@ class DownloadWorker(
                     caption = caption
                 )
             )
+
+            // Consumed here (atomic with the save above) rather than via a UI-layer WorkInfo
+            // observer, which can silently miss the callback under rapid successive downloads.
+            if (inputData.getBoolean(KEY_CONSUME_CREDIT, false) &&
+                !inputData.getBoolean(KEY_IS_PREMIUM, false)
+            ) {
+                CreditsManager.consumeCredit(applicationContext)
+            }
 
             val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
             if (notify) postNotification("FetchIn: Download complete", filename)

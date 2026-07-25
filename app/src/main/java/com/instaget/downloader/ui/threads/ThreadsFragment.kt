@@ -83,7 +83,7 @@ class ThreadsFragment : Fragment() {
         }
 
         // Set up ads infrastructure
-        rewardedAdManager = RewardedInterstitialManager(requireContext())
+        rewardedAdManager = RewardedInterstitialManager.getInstance(requireContext())
         rewardedAdManager.preload()
         updateCreditsDisplay()
 
@@ -336,8 +336,10 @@ Go Premium to skip ads entirely and download without limits.
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
+        val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
 
         itemsToDownload.forEachIndexed { index, (url, filename, mediaType) ->
+            val isLastItem = index == itemsToDownload.lastIndex
             val request = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
@@ -352,14 +354,18 @@ Go Premium to skip ads entirely and download without limits.
                         DownloadWorker.KEY_USERNAME to info.username,
                         DownloadWorker.KEY_CAPTION to info.text,
                         DownloadWorker.KEY_REFERER to "https://www.threads.net/",
-                        DownloadWorker.KEY_COOKIE to info.sessionCookies
+                        DownloadWorker.KEY_COOKIE to info.sessionCookies,
+                        // 1 credit per download action, not per carousel item — charged by the
+                        // worker itself (atomic with the save) on whichever item finishes last.
+                        DownloadWorker.KEY_CONSUME_CREDIT to isLastItem,
+                        DownloadWorker.KEY_IS_PREMIUM to isPremium
                     )
                 )
                 .build()
 
             workManager.enqueue(request)
 
-            if (index == itemsToDownload.lastIndex) {
+            if (isLastItem) {
                 workManager.getWorkInfoByIdLiveData(request.id)
                     .observe(viewLifecycleOwner) { workInfo ->
                         if (workInfo == null) return@observe
@@ -378,9 +384,6 @@ Go Premium to skip ads entirely and download without limits.
                                 binding.tvStatus.text = msg
                                 binding.etUrl.text?.clear()
                                 Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
-                                // Consume 1 credit now that download succeeded
-                                val premium = BillingManager.getInstance(requireContext()).isUserSubscribed()
-                                rewardedAdManager.onDownloadSucceeded(premium)
                                 updateCreditsDisplay()
                             }
                             WorkInfo.State.FAILED -> {

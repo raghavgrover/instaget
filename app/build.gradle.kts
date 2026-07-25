@@ -88,9 +88,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    kapt("androidx.room:room-compiler:2.8.4")
 
     // Glide
     implementation("com.github.bumptech.glide:glide:4.16.0")
@@ -106,7 +106,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Billing
-    implementation("com.android.billingclient:billing-ktx:6.2.0")
+    implementation("com.android.billingclient:billing-ktx:8.3.0")
 
     // Material
     implementation("com.google.android.material:material:1.11.0")

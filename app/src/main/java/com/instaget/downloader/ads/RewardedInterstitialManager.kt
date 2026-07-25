@@ -18,20 +18,27 @@ import java.lang.ref.WeakReference
  * Manages the rewarded interstitial shown when a free user has 0 credits.
  *
  * Credit gate rules:
- *  credits > 0 → calls [onProceed] immediately; [onDownloadSucceeded] consumes 1 credit after success.
- *  credits = 0 → ad MUST play first:
- *    • Ad ready         → shows immediately.
- *    • Ad still loading → queues the request; shows ad automatically when load completes.
- *    • Ad failed load   → toast "Ad unavailable". NO download.
- *    • Ad skipped       → toast "Watch the full ad to earn credits". NO download.
- *    • Reward earned    → +2 credits, [onProceed] fires.
+ *  credits > 0 → calls [onProceed] immediately; DownloadWorker consumes 1 credit once the
+ *                download actually succeeds (atomic with the file save — not tied to any
+ *                UI-layer observer, which can silently miss the callback).
+ *  credits = 0 → an ad is offered, but ad *infrastructure* failures never block the download:
+ *    • Ad ready              → shows immediately.
+ *    • Ad still loading      → queues the request; shows ad automatically when load completes.
+ *    • Ad failed to load     → not the user's fault — [onProceed] fires anyway, no bonus credits.
+ *    • Ad failed to show     → not the user's fault — [onProceed] fires anyway, no bonus credits.
+ *    • Ad shown but skipped  → user's own choice to bail early — download withheld, same as before.
+ *    • Reward earned         → +2 credits, [onProceed] fires.
  *
  * Premium users bypass everything.
+ *
+ * Singleton (application-scoped): a single cached/loading ad instance survives fragment
+ * recreation (tab switches), instead of every Home/Threads fragment starting a fresh load.
  */
-class RewardedInterstitialManager(private val context: Context) {
+class RewardedInterstitialManager private constructor(private val context: Context) {
 
     private var rewardedAd: RewardedInterstitialAd? = null
     private var isLoading = false
+    private var retryAttempt = 0
 
     // Queued gate request — fired automatically when the pending load completes
     private var pendingActivity: WeakReference<Activity>? = null
@@ -39,8 +46,20 @@ class RewardedInterstitialManager(private val context: Context) {
     private var pendingOnCreditsUpdated: ((Int) -> Unit)? = null
     private var hasPendingGate = false
 
+    private val retryHandler = Handler(Looper.getMainLooper())
+
     companion object {
         private const val TAG = "RewardedIntAd"
+        private val RETRY_DELAYS_MS = longArrayOf(15_000, 30_000, 60_000)
+
+        @Volatile
+        private var INSTANCE: RewardedInterstitialManager? = null
+
+        fun getInstance(context: Context): RewardedInterstitialManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: RewardedInterstitialManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 
     /** Pre-loads the next ad. Queued gate requests are fired automatically on load. */
@@ -48,13 +67,14 @@ class RewardedInterstitialManager(private val context: Context) {
         if (isLoading || rewardedAd != null) return
         isLoading = true
         RewardedInterstitialAd.load(
-            context.applicationContext,
+            context,
             AdConfig.REWARDED_INTERSTITIAL,
             AdRequest.Builder().build(),
             object : RewardedInterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedInterstitialAd) {
                     rewardedAd = ad
                     isLoading = false
+                    retryAttempt = 0
                     Log.d(TAG, "Rewarded interstitial loaded")
 
                     // If gateDownload() was called while we were loading, fire it now
@@ -65,17 +85,27 @@ class RewardedInterstitialManager(private val context: Context) {
                     isLoading = false
                     Log.w(TAG, "Failed to load: ${err.message}")
 
-                    // Clear any queued gate — can't show an ad that didn't load
+                    // Ad infra failing is not the user's fault — let a queued download proceed anyway.
                     if (hasPendingGate) {
+                        val proceed = pendingOnProceed
                         hasPendingGate = false
                         pendingActivity = null
                         pendingOnProceed = null
                         pendingOnCreditsUpdated = null
-                        showToast("Ad unavailable right now. Try again shortly.")
+                        showToast("Continuing without ad — enjoy your download!")
+                        proceed?.invoke()
                     }
+
+                    scheduleRetry()
                 }
             }
         )
+    }
+
+    private fun scheduleRetry() {
+        val delay = RETRY_DELAYS_MS[retryAttempt.coerceAtMost(RETRY_DELAYS_MS.lastIndex)]
+        retryAttempt++
+        retryHandler.postDelayed({ preload() }, delay)
     }
 
     /**
@@ -124,15 +154,6 @@ class RewardedInterstitialManager(private val context: Context) {
         }
     }
 
-    /**
-     * Call inside WorkInfo.State.SUCCEEDED to consume 1 credit.
-     * Returns the new balance (floor 0).
-     */
-    fun onDownloadSucceeded(isPremium: Boolean): Int {
-        if (isPremium) return Int.MAX_VALUE
-        return CreditsManager.consumeCredit(context)
-    }
-
     // ── Internals ──────────────────────────────────────────────────────────────
 
     private fun firePendingGate() {
@@ -161,7 +182,8 @@ class RewardedInterstitialManager(private val context: Context) {
         onProceed: () -> Unit
     ) {
         val ad = rewardedAd ?: run {
-            showToast("Ad unavailable. Try again shortly.")
+            showToast("Continuing without ad — enjoy your download!")
+            onProceed()
             return
         }
 
@@ -181,8 +203,8 @@ class RewardedInterstitialManager(private val context: Context) {
                 Log.w(TAG, "Ad failed to show: ${err.message}")
                 rewardedAd = null
                 preload()
-                showToast("Ad unavailable. Try again shortly.")
-                // NO download at 0 credits
+                showToast("Continuing without ad — enjoy your download!")
+                onProceed()
             }
         }
 
