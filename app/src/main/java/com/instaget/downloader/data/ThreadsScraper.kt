@@ -25,8 +25,17 @@ class ThreadsScraper {
         private const val TAG = "ThreadsScraper"
         private val POST_REGEX =
             Regex("""threads\.(?:net|com)/@([^/?#\s]+)/post/([A-Za-z0-9_-]+)""")
+        // Threads' native share button now generates short links like
+        // threads.com/share/<code>/ instead of the full /@user/post/id URL.
+        // These carry no username/post info themselves and must be resolved first.
+        private val SHARE_REGEX =
+            Regex("""threads\.(?:net|com)/share/([A-Za-z0-9_-]+)""")
         private const val USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        // Threads only serves the real HTTP 302 redirect (share link → full post URL)
+        // to recognised crawler user-agents used for link-preview generation.
+        // A normal browser UA gets a 200 with client-side JS redirect that we can't run.
+        private const val CRAWLER_USER_AGENT = "facebookexternalhit/1.1"
         private const val IG_APP_ID = "238260118697367"
         private const val GRAPHQL_URL = "https://www.threads.net/api/graphql"
 
@@ -44,11 +53,62 @@ class ThreadsScraper {
         .followRedirects(true)
         .build()
 
-    fun isThreadsUrl(url: String) = POST_REGEX.containsMatchIn(url)
+    // Dedicated client for share-link resolution: short timeouts so a stalled
+    // attempt fails fast and the caller can retry, rather than tying up 20-30s.
+    private val resolveClient = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(8, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .build()
+
+    fun isThreadsUrl(url: String) =
+        POST_REGEX.containsMatchIn(url) || SHARE_REGEX.containsMatchIn(url)
     fun extractPostId(url: String) = POST_REGEX.find(url)?.groupValues?.get(2)
     fun extractUsername(url: String) = POST_REGEX.find(url)?.groupValues?.get(1)
 
-    suspend fun fetchPostInfo(url: String): Result<ThreadsPostInfo> = withContext(Dispatchers.IO) {
+    /**
+     * Resolves a threads.com/share/<code>/ link to its canonical
+     * threads.com/@username/post/<id> URL. Threads only returns a real HTTP 302
+     * for this when the request comes from a recognised crawler user-agent
+     * (used for link-preview generation) — a normal browser UA gets a 200 with
+     * a client-side JS redirect that a non-JS HTTP client can't follow.
+     *
+     * Retries once on failure (mobile networks are more prone to transient
+     * hiccups than a dev machine) before giving up. Returns null only after
+     * both attempts fail — the caller distinguishes this from "not a share
+     * link" (which returns the url unchanged) to surface a clear error
+     * instead of the generic "Invalid Threads URL" message.
+     */
+    private fun resolveShareUrl(url: String): String? {
+        if (!SHARE_REGEX.containsMatchIn(url)) return url
+        repeat(2) { attempt ->
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", CRAWLER_USER_AGENT)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .build()
+                resolveClient.newCall(request).execute().use { response ->
+                    val resolved = response.request.url.toString()
+                    if (POST_REGEX.containsMatchIn(resolved)) {
+                        Log.d(TAG, "Resolved share URL (attempt ${attempt + 1}): $url -> $resolved")
+                        return resolved
+                    }
+                    Log.w(TAG, "Share URL resolved but didn't match post format (attempt ${attempt + 1}): $resolved")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to resolve share URL (attempt ${attempt + 1}): ${e.message}")
+            }
+        }
+        return null
+    }
+
+    suspend fun fetchPostInfo(rawUrl: String): Result<ThreadsPostInfo> = withContext(Dispatchers.IO) {
+        val url = resolveShareUrl(rawUrl)
+            ?: return@withContext Result.failure(
+                Exception("Could not open this Threads link — please check your connection and try again")
+            )
         val postId = extractPostId(url)
             ?: return@withContext Result.failure(
                 IllegalArgumentException("Invalid Threads URL — expected threads.net/@username/post/ID")
@@ -66,7 +126,18 @@ class ThreadsScraper {
             val numericMediaId = shortcodeToMediaId(postId)
             Log.d(TAG, "HTML=${html.length}chars LSD=${lsdToken?.take(12) ?: "NOT_FOUND"} dynamicDocIds=${dynamicDocIds.size} mediaId=$numericMediaId")
 
-            val info = parseFromOGTags(html, postId, urlUsername)
+            // The regular browser-UA fetch sometimes returns a client-side-rendered
+            // "app shell" with no embedded OG tags at all (Threads increasingly gates
+            // full SSR content behind a session for logged-out requests). When that
+            // happens, fall back to a crawler-UA fetch — Meta reliably serves OG
+            // metadata to recognised link-preview bots even when the browser page is empty.
+            var ogHtml = html
+            if (parseOGProperties(html).isEmpty()) {
+                Log.w(TAG, "No OG tags in browser-UA page — retrying with crawler UA")
+                ogHtml = fetchPageAsCrawler(url) ?: html
+            }
+
+            val info = parseFromOGTags(ogHtml, postId, urlUsername)
                 ?: return@withContext Result.failure(
                     Exception("Could not parse post — it may be private or Threads blocked the request")
                 )
@@ -348,6 +419,32 @@ class ThreadsScraper {
         }
     }
 
+    /**
+     * Fetches the post page using a recognised crawler user-agent (used for
+     * link-preview generation). Meta reliably serves OG metadata to these even
+     * when the same URL returns an empty client-side-rendered shell to a normal
+     * browser UA. Used as a fallback ONLY for OG-tag parsing — this response
+     * does not contain video_versions/SSR JSON, so it's never used for video
+     * or carousel extraction.
+     */
+    private fun fetchPageAsCrawler(url: String): String? {
+        return try {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", CRAWLER_USER_AGENT)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .build()
+            resolveClient.newCall(request).execute().use { response ->
+                Log.d(TAG, "GET (crawler) $url → HTTP ${response.code}")
+                response.body?.string()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Crawler-UA fetch failed: ${e.message}")
+            null
+        }
+    }
+
     // ── OG tag parsing ──────────────────────────────────────────────────────────
 
     private fun parseFromOGTags(html: String, postId: String, urlUsername: String): ThreadsPostInfo? {
@@ -448,6 +545,12 @@ class ThreadsScraper {
         val lower = url.lowercase()
         // All Meta CDN buckets ending in -19 are profile/avatar buckets (e.g. t51.2885-19, t51.82787-19)
         if (Regex("""/t\d+\.\d+-19/""").containsMatchIn(lower)) return false
+        // t39.x is Meta's generic link-preview/OG-image bucket — used as a fallback
+        // thumbnail for posts (often videos) whose real media isn't exposed to
+        // unauthenticated/bot requests. Never actual post-uploaded content; accepting
+        // it would silently download the wrong (generic) image instead of surfacing
+        // a clear "media unavailable" error.
+        if (Regex("""/t39\.\d+-\d+/""").containsMatchIn(lower)) return false
         if (lower.contains("profile_pic") || lower.contains("profilepic")) return false
         return (lower.contains("cdninstagram.com") || lower.contains("fbcdn.net")) && lower.contains("/v/")
     }
