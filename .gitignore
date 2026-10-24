@@ -20,3 +20,8 @@ releases/
 
 # Firebase config (per-project; download from the Firebase console)
 app/google-services.json
+
+# Signing keys (keep a backup outside this folder)
+keystore/
+*.jks
+*.keystore
