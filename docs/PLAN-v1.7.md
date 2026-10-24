@@ -1,7 +1,8 @@
 # InstaGet v1.7 (versionCode 8) — Release Plan
 
-> **Status (2026-10-24): code implemented.** Backend chosen: **Supabase Edge Function**
-> (`supabase/`) authenticated with **Firebase App Check** tokens. Firebase BoM pinned to 34.19.0
+> **Status (2026-10-24): code implemented, backend deployed.** Backend: **Supabase Edge
+> Function** (`supabase/`), unauthenticated by design (Firebase App Check was dropped — the
+> credit gate is on-device, so App Check added setup cost without real protection). Firebase BoM pinned to 34.19.0
 > (35.x needs Kotlin 2.4 metadata; upgrading Kotlin was out of scope). UMP kept on 3.x (3.2.0).
 > Remaining manual steps: see `supabase/README.md` and section 5.
 
@@ -70,8 +71,8 @@ Smallest possible server state — one boolean per device — enough to kill the
    scoped to (signing key, user, device): it survives clear data and reinstall, resets on factory
    reset. minSdk is 28, so this always holds.
 2. Endpoint `claimInitialGrant(deviceKey)` → `{ grant: 10 }` the first time, `{ grant: 0 }` after.
-   Idempotent; stores `{ deviceKey, claimedAt }` only. Protected by **Firebase App Check (Play
-   Integrity provider)** so only genuine copies of your app can call it.
+   Idempotent; stores `{ deviceKey, claimedAt }` only. No App Check: a modified APK could skip the
+   on-device gate anyway, so the endpoint only has to stop ordinary resets.
 3. `CreditsManager` (renamed `CreditsRepository`) changes:
    - Uninitialized state no longer auto-grants. It calls `claimInitialGrant` and initializes to the
      returned value.
@@ -84,8 +85,7 @@ Smallest possible server state — one boolean per device — enough to kill the
    *gain* credits by resetting, which is the actual exploit.
 
 Backend (implemented): **Supabase Edge Function `claim-credits` + `credit_grants` table**. The
-function verifies the Firebase App Check JWT against Google's public JWKS, then calls the atomic
-`claim_initial_grant()` SQL function.
+function validates the device key and calls the atomic `claim_initial_grant()` SQL function.
 
 Later upgrade (optional): **Play Integrity "device recall"** (beta, needs Google's approval form)
 stores up to 3 bits per device on Google's servers, survives even factory reset, and means you hold
@@ -151,7 +151,7 @@ existing data).
 1. 3.7 scraper tests first (baseline green on current code).
 2. 3.1–3.5, 3.6, 3.8, 3.9 — run tests after each.
 3. Firebase project + Analytics/Crashlytics (section 2).
-4. Backend endpoint + App Check + `CreditsRepository` (section 1).
+4. Backend endpoint + `CreditsRepository` (section 1) — deployed.
 5. `TERMS_VERSION` bump for the in-app notice; versionCode 8 / versionName 1.7.
 6. Release build (R8 on); manual test on an **API 28** device and an API 34+ device:
    IG post/reel/carousel/story, Threads image/video/carousel/text, share-sheet entry, credits

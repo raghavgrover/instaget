@@ -47,9 +47,8 @@ object CreditsManager {
         val initialized = prefs.getBoolean(KEY_INITIALIZED, false)
         if (initialized && prefs.getBoolean(KEY_DEVICE_REGISTERED, false)) return@withLock
 
-        if (!CreditGrantClient.isConfigured(context)) {
-            // Local debug builds without google-services.json (release builds can't be made
-            // without it): fall back to the old per-install grant.
+        if (!CreditGrantClient.isConfigured) {
+            // Only if SUPABASE_URL was blanked out locally: fall back to the old per-install grant.
             if (!initialized) {
                 prefs.edit().putBoolean(KEY_INITIALIZED, true).putInt(KEY_CREDITS, INITIAL_CREDITS).apply()
             }

@@ -11,7 +11,7 @@ val localProps = Properties().also { props ->
     if (f.exists()) f.inputStream().use { props.load(it) }
 }
 
-// Firebase (Analytics, Crashlytics, App Check) needs app/google-services.json from the Firebase
+// Firebase (Analytics, Crashlytics) needs app/google-services.json from the Firebase
 // console (gitignored). Without it the plugins are skipped so debug builds still work —
 // Analytics then no-ops — but release builds refuse to proceed.
 val hasGoogleServicesJson = file("google-services.json").exists()
@@ -50,11 +50,9 @@ android {
         buildConfigField("String", "AD_REWARDED_INTERSTITIAL", "\"$adRewarded\"")
         buildConfigField("String", "AD_NATIVE_THREADS", "\"$adNativeThreads\"")
         // Supabase project used for the one-time free-credit claim (see supabase/README.md).
-        // Both values are public by design; the function is protected by Firebase App Check.
+        // Public by design: the function only records which device keys were granted.
         val supabaseUrl = localProps.getProperty("SUPABASE_URL") ?: "https://dwojyygknmodevuvqhar.supabase.co"
-        val supabaseAnonKey = localProps.getProperty("SUPABASE_ANON_KEY") ?: ""
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     signingConfigs {
@@ -156,13 +154,10 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:25.5.0")
     implementation("com.google.android.ump:user-messaging-platform:3.2.0")
 
-    // Firebase: Analytics, Crashlytics, App Check (Play Integrity in release, debug provider in debug)
+    // Firebase: Analytics + Crashlytics
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-crashlytics")
-    implementation("com.google.firebase:firebase-appcheck-playintegrity")
-    debugImplementation("com.google.firebase:firebase-appcheck-debug")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     testImplementation(libs.junit)
     // Real org.json for JVM tests (android.jar only ships stubs)
