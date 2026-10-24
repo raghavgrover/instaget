@@ -34,6 +34,7 @@
     <string name="label_share">Share</string>
     <string name="label_terms_privacy">Terms of Use · Privacy Policy</string>
     <!-- Replace with your real hosted URLs when ready -->
+    <string name="policy_update_notice">We\'ve updated our Privacy Policy. InstaGet now uses Google Analytics for Firebase and Crashlytics to understand app usage and fix crashes, and a one-way hashed device identifier to prevent abuse of free download credits. We never collect the links, posts or accounts you download. Please review the Privacy Policy below.</string>
     <string name="url_terms_of_use">https://saanidhyasoftware.lovable.app/instaget/terms</string>
     <string name="url_privacy_policy">https://saanidhyasoftware.lovable.app/instaget/privacy</string>
     <string name="label_subscription_restored">Subscription restored!</string>

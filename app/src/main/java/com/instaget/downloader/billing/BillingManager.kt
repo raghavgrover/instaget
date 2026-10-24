@@ -1,15 +1,20 @@
 package com.instaget.downloader.billing
 
+import com.instaget.downloader.analytics.Analytics
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.android.billingclient.api.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -24,6 +29,7 @@ class BillingManager private constructor(private val context: Context) {
         private const val KEY_ACTIVE_SKU = "active_sku"
         private const val KEY_IS_CANCELLED = "is_cancelled"
         private const val KEY_LAST_PURCHASE_TIME = "last_purchase_time"
+        private const val TAG = "BillingManager"
 
         @Volatile
         private var INSTANCE: BillingManager? = null
@@ -34,6 +40,9 @@ class BillingManager private constructor(private val context: Context) {
             }
         }
     }
+
+    // App-scoped: BillingManager is a process-lifetime singleton, so this scope never needs cancelling.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -54,7 +63,7 @@ class BillingManager private constructor(private val context: Context) {
 
     private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            CoroutineScope(Dispatchers.IO).launch {
+            scope.launch {
                 purchases.forEach { handlePurchase(it) }
             }
         }
@@ -77,14 +86,15 @@ class BillingManager private constructor(private val context: Context) {
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    CoroutineScope(Dispatchers.IO).launch {
+                    scope.launch {
                         queryActivePurchases()
                     }
                 }
             }
 
             override fun onBillingServiceDisconnected() {
-                connectBillingClient()
+                // No manual reconnect: enableAutoServiceReconnection() re-establishes the
+                // connection on the next API call.
             }
         })
     }
@@ -92,14 +102,18 @@ class BillingManager private constructor(private val context: Context) {
     /** Ensure the billing client is connected, retrying once if needed. */
     private suspend fun ensureConnected(): Boolean {
         if (billingClient.isReady) return true
-        // Client not ready — try to reconnect and wait briefly
-        return suspendCoroutine { cont ->
+        // Client not ready — try to reconnect and wait briefly. The listener can fire both
+        // onBillingSetupFinished and a later onBillingServiceDisconnected, so resume only once.
+        return suspendCancellableCoroutine { cont ->
+            val resumed = AtomicBoolean(false)
             billingClient.startConnection(object : BillingClientStateListener {
                 override fun onBillingSetupFinished(result: BillingResult) {
-                    cont.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
+                    if (resumed.compareAndSet(false, true)) {
+                        cont.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
+                    }
                 }
                 override fun onBillingServiceDisconnected() {
-                    cont.resume(false)
+                    if (resumed.compareAndSet(false, true)) cont.resume(false)
                 }
             })
         }
@@ -158,6 +172,7 @@ class BillingManager private constructor(private val context: Context) {
             .setProductDetailsParamsList(productDetailsParamsList)
             .build()
 
+        Analytics.purchaseStarted(productDetails.productId)
         billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
@@ -181,6 +196,13 @@ class BillingManager private constructor(private val context: Context) {
                                         purchase.products.contains(SEMI_ANNUAL_SKU) ||
                                         purchase.products.contains(ANNUAL_SKU))
                     }
+                    // A purchase whose PurchasesUpdatedListener callback was missed (app killed
+                    // mid-flow) is only ever seen here — acknowledge it, or Google auto-refunds
+                    // it after 3 days.
+                    purchases.filter {
+                        it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged
+                    }.forEach { scope.launch { acknowledgeIfNeeded(it) } }
+
                     val active = activePurchase != null
                     val activeSku = when {
                         activePurchase?.products?.contains(ANNUAL_SKU) == true -> ANNUAL_SKU
@@ -209,17 +231,12 @@ class BillingManager private constructor(private val context: Context) {
     }
 
     suspend fun handlePurchase(purchase: Purchase) {
+        // PENDING purchases (e.g. cash payments) must not unlock Premium yet; they arrive
+        // again via the listener / queryActivePurchases once they complete.
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-            if (!purchase.isAcknowledged) {
-                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-                    .setPurchaseToken(purchase.purchaseToken)
-                    .build()
-                suspendCoroutine<Unit> { cont ->
-                    billingClient.acknowledgePurchase(acknowledgePurchaseParams) {
-                        cont.resume(Unit)
-                    }
-                }
-            }
+            // Entitlement is granted even if this acknowledge fails — queryActivePurchases()
+            // retries unacknowledged purchases on every connection and Premium-screen resume.
+            acknowledgeIfNeeded(purchase)
             val activeSku = when {
                 purchase.products.contains(ANNUAL_SKU) -> ANNUAL_SKU
                 purchase.products.contains(SEMI_ANNUAL_SKU) -> SEMI_ANNUAL_SKU
@@ -239,6 +256,19 @@ class BillingManager private constructor(private val context: Context) {
                 .putLong(KEY_LAST_PURCHASE_TIME, purchase.purchaseTime)
                 .apply()
         }
+    }
+
+    private suspend fun acknowledgeIfNeeded(purchase: Purchase): Boolean {
+        if (purchase.isAcknowledged) return true
+        val params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        val result = suspendCoroutine { cont ->
+            billingClient.acknowledgePurchase(params) { cont.resume(it) }
+        }
+        val ok = result.responseCode == BillingClient.BillingResponseCode.OK
+        if (!ok) Log.w(TAG, "Acknowledge failed: ${result.responseCode} ${result.debugMessage}")
+        return ok
     }
 
     fun isUserSubscribed(): Boolean {

@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.premium
 
+import com.instaget.downloader.analytics.Analytics
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -151,6 +152,7 @@ class PremiumFragment : Fragment() {
         super.onResume()
         // Always refresh from Play Store on every visit so cancellations are reflected immediately
         viewModel.refresh()
+        Analytics.paywallViewed()
     }
 
     /** Highlights the selected card and syncs the subscribe button label. */

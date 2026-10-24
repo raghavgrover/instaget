@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.home
 
+import com.instaget.downloader.analytics.Analytics
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -37,6 +38,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        Analytics.fetchStarted(Analytics.PLATFORM_INSTAGRAM)
         viewModelScope.launch {
             _scrapeState.value = ScrapeState.Loading
 
@@ -51,9 +53,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             val result = scraper.fetchMediaInfo(url)
             _scrapeState.value = if (result.isSuccess) {
-                ScrapeState.Success(result.getOrThrow())
+                val info = result.getOrThrow()
+                Analytics.fetchSucceeded(Analytics.PLATFORM_INSTAGRAM, info.mediaType)
+                ScrapeState.Success(info)
             } else {
-                ScrapeState.Error(result.exceptionOrNull()?.message ?: "Download failed")
+                val message = result.exceptionOrNull()?.message
+                Analytics.fetchFailed(Analytics.PLATFORM_INSTAGRAM, message)
+                ScrapeState.Error(message ?: "Download failed")
             }
         }
     }

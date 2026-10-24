@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [MediaItem::class], version = 3, exportSchema = false)
+@Database(entities = [MediaItem::class], version = 3, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun mediaDao(): MediaDao
@@ -36,8 +36,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "fetchin_db"
                 )
+                    // No destructive fallback: a missing migration must crash in testing rather
+                    // than silently wipe every user's download library in production.
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                    .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }
         }

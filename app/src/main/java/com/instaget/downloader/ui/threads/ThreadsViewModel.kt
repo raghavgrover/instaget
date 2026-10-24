@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.threads
 
+import com.instaget.downloader.analytics.Analytics
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,6 +39,7 @@ class ThreadsViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
+        Analytics.fetchStarted(Analytics.PLATFORM_THREADS)
         viewModelScope.launch {
             _scrapeState.value = ThreadsScrapeState.Loading
 
@@ -53,9 +55,13 @@ class ThreadsViewModel(application: Application) : AndroidViewModel(application)
 
             val result = scraper.fetchPostInfo(url)
             _scrapeState.value = if (result.isSuccess) {
-                ThreadsScrapeState.Success(result.getOrThrow())
+                val info = result.getOrThrow()
+                Analytics.fetchSucceeded(Analytics.PLATFORM_THREADS, info.mediaType)
+                ThreadsScrapeState.Success(info)
             } else {
-                ThreadsScrapeState.Error(result.exceptionOrNull()?.message ?: "Failed to fetch post")
+                val message = result.exceptionOrNull()?.message
+                Analytics.fetchFailed(Analytics.PLATFORM_THREADS, message)
+                ThreadsScrapeState.Error(message ?: "Failed to fetch post")
             }
         }
     }

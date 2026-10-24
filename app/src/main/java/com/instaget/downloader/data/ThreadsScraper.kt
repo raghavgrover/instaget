@@ -1,6 +1,7 @@
 package com.instaget.downloader.data
 
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -224,7 +225,7 @@ class ThreadsScraper {
      * The CDN video URL may NOT have a .mp4 extension — extract it by finding the
      * "url" field directly after the "video_versions" key.
      */
-    private fun extractVideoFromSsrData(html: String, mediaId: Long): String? {
+    @VisibleForTesting internal fun extractVideoFromSsrData(html: String, mediaId: Long): String? {
         // Log markers for diagnostics
         val markers = listOf("video_versions", "video_url", "dash_manifest", ".m3u8", "\"media_type\":2")
         Log.d(TAG, "HTML video markers: ${markers.filter { html.contains(it) }}")
@@ -324,7 +325,7 @@ class ThreadsScraper {
      * Extract GraphQL doc_ids embedded in the Threads page HTML/JS.
      * These are 13–17 digit numbers that appear as values for "doc_id", "queryId", or "__id".
      */
-    private fun extractDocIdsFromHtml(html: String): List<String> {
+    @VisibleForTesting internal fun extractDocIdsFromHtml(html: String): List<String> {
         val pattern = Regex(""""(?:doc_id|queryId|__id)"\s*:\s*"?(\d{13,17})"?""")
         val ids = pattern.findAll(html)
             .map { it.groupValues[1] }
@@ -337,7 +338,7 @@ class ThreadsScraper {
 
     // ── LSD token extraction ────────────────────────────────────────────────────
 
-    private fun extractLsdToken(html: String): String? {
+    @VisibleForTesting internal fun extractLsdToken(html: String): String? {
         Regex(""""LSD"\s*,\s*\[\s*\]\s*,\s*\{"token"\s*:\s*"([^"]+)"\}""")
             .find(html)?.groupValues?.get(1)?.also { return it }
         Regex(""""LSD"\s*:\s*\{"token"\s*:\s*"([^"]+)"\}""")
@@ -352,7 +353,7 @@ class ThreadsScraper {
 
     // ── JSON helpers ────────────────────────────────────────────────────────────
 
-    private fun applyVideoFromJson(json: String, info: ThreadsPostInfo): ThreadsPostInfo {
+    @VisibleForTesting internal fun applyVideoFromJson(json: String, info: ThreadsPostInfo): ThreadsPostInfo {
         val videoUrl = extractVideoUrlFromJson(json) ?: return info
         val thumbnailUrl = extractThumbnailFromJson(json) ?: info.imageUrls.firstOrNull()
         Log.d(TAG, "Video URL from JSON: ${videoUrl.take(100)}")
@@ -447,7 +448,7 @@ class ThreadsScraper {
 
     // ── OG tag parsing ──────────────────────────────────────────────────────────
 
-    private fun parseFromOGTags(html: String, postId: String, urlUsername: String): ThreadsPostInfo? {
+    @VisibleForTesting internal fun parseFromOGTags(html: String, postId: String, urlUsername: String): ThreadsPostInfo? {
         val og = parseOGProperties(html)
         if (og.isEmpty()) { Log.w(TAG, "No OG tags found"); return null }
 
@@ -484,7 +485,7 @@ class ThreadsScraper {
 
     // ── Carousel enrichment ─────────────────────────────────────────────────────
 
-    private fun tryEnrichCarousel(html: String, info: ThreadsPostInfo): ThreadsPostInfo {
+    @VisibleForTesting internal fun tryEnrichCarousel(html: String, info: ThreadsPostInfo): ThreadsPostInfo {
         if (info.mediaType == "video") return info
         val anchorUrl = info.imageUrls.firstOrNull() ?: return info
         val bucket = Regex("""/(t\d+\.\d+-\d+)/""").find(anchorUrl)?.groupValues?.get(1)
@@ -510,11 +511,11 @@ class ThreadsScraper {
 
     // ── Utilities ───────────────────────────────────────────────────────────────
 
-    private fun extractCsrfToken(cookies: String) =
+    @VisibleForTesting internal fun extractCsrfToken(cookies: String) =
         cookies.split(";").firstOrNull { it.trim().startsWith("csrftoken=") }
             ?.substringAfter("csrftoken=")?.trim() ?: ""
 
-    private fun shortcodeToMediaId(shortcode: String): Long {
+    @VisibleForTesting internal fun shortcodeToMediaId(shortcode: String): Long {
         val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
         var id = 0L
         for (ch in shortcode.take(11)) {
@@ -531,7 +532,7 @@ class ThreadsScraper {
             .find(title)?.groupValues?.get(1)
     }
 
-    private fun parseOGProperties(html: String): Map<String, String> {
+    @VisibleForTesting internal fun parseOGProperties(html: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
         Regex("""<meta\s+property="og:([^"]+)"\s+content="([^"]*)"[^>]*>""", RegexOption.IGNORE_CASE)
             .findAll(html).forEach { result[it.groupValues[1]] = it.groupValues[2] }
@@ -540,7 +541,7 @@ class ThreadsScraper {
         return result
     }
 
-    private fun isPostImage(url: String): Boolean {
+    @VisibleForTesting internal fun isPostImage(url: String): Boolean {
         if (url.isBlank()) return false
         val lower = url.lowercase()
         // All Meta CDN buckets ending in -19 are profile/avatar buckets (e.g. t51.2885-19, t51.82787-19)

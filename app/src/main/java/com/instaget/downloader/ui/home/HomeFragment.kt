@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.home
 
+import com.instaget.downloader.analytics.Analytics
 import android.Manifest
 import android.content.ClipboardManager
 import android.content.Context
@@ -128,6 +129,7 @@ class HomeFragment : Fragment() {
                         val isPremiumNow = BillingManager.getInstance(requireContext()).isUserSubscribed()
                         rewardedAdManager.gateDownload(requireActivity(), isPremiumNow,
                             onCreditsUpdated = { updateCreditsDisplay() },
+                            isUiAlive = { _binding != null },
                             onProceed = { proceedWithPermissionCheck(info) }
                         )
                         viewModel.reset()
@@ -242,6 +244,7 @@ class HomeFragment : Fragment() {
                             }
                             WorkInfo.State.SUCCEEDED -> {
                                 binding.progressIndicator.visibility = View.GONE
+                                Analytics.downloadSucceeded(Analytics.PLATFORM_INSTAGRAM, info.mediaType, itemsToDownload.size)
                                 val totalCount = itemsToDownload.size
                                 val msg = if (totalCount > 1)
                                     "Saved $totalCount files to DCIM/InstaGet ✓"
@@ -256,6 +259,7 @@ class HomeFragment : Fragment() {
                             WorkInfo.State.FAILED -> {
                                 binding.progressIndicator.visibility = View.GONE
                                 val err = workInfo.outputData.getString("error") ?: "Download failed"
+                                Analytics.downloadFailed(Analytics.PLATFORM_INSTAGRAM, err)
                                 binding.tvStatus.visibility = View.VISIBLE
                                 binding.tvStatus.text = err
                                 Snackbar.make(binding.root, err, Snackbar.LENGTH_LONG).show()

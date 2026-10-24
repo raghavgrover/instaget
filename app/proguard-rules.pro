@@ -27,21 +27,11 @@
 -keepclassmembers @androidx.room.Entity class * { *; }
 
 # -------------------------------------------------------------------------
-# Gson + Retrofit (network models with @SerializedName)
+# OkHttp
 # -------------------------------------------------------------------------
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.google.gson.** { *; }
--keep class com.instaget.downloader.network.** { *; }
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
--dontwarn com.google.gson.**
-
-# Retrofit
--keep class retrofit2.** { *; }
 -keepattributes Exceptions
--dontwarn retrofit2.**
 -dontwarn okhttp3.**
 -dontwarn okio.**
 

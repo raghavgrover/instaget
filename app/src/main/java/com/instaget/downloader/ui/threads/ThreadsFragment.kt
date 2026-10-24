@@ -1,5 +1,6 @@
 package com.instaget.downloader.ui.threads
 
+import com.instaget.downloader.analytics.Analytics
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -180,6 +181,7 @@ class ThreadsFragment : Fragment() {
                 val isPremiumNow = BillingManager.getInstance(requireContext()).isUserSubscribed()
                 rewardedAdManager.gateDownload(requireActivity(), isPremiumNow,
                     onCreditsUpdated = { updateCreditsDisplay() },
+                    isUiAlive = { _binding != null },
                     onProceed = { proceedWithPermissionCheck(info) }
                 )
             }
@@ -377,6 +379,7 @@ Go Premium to skip ads entirely and download without limits.
                             }
                             WorkInfo.State.SUCCEEDED -> {
                                 binding.progressIndicator.visibility = View.GONE
+                                Analytics.downloadSucceeded(Analytics.PLATFORM_THREADS, info.mediaType, itemsToDownload.size)
                                 val total = itemsToDownload.size
                                 val msg = if (total > 1) "Saved $total files to DCIM/InstaGet ✓"
                                           else "Saved to DCIM/InstaGet ✓"
@@ -389,6 +392,7 @@ Go Premium to skip ads entirely and download without limits.
                             WorkInfo.State.FAILED -> {
                                 binding.progressIndicator.visibility = View.GONE
                                 val err = workInfo.outputData.getString("error") ?: "Download failed"
+                                Analytics.downloadFailed(Analytics.PLATFORM_THREADS, err)
                                 binding.tvStatus.visibility = View.VISIBLE
                                 binding.tvStatus.text = err
                                 Snackbar.make(binding.root, err, Snackbar.LENGTH_LONG).show()

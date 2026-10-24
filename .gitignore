@@ -13,3 +13,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release bundles (contain the full R8 mapping) — keep out of git
+releases/
+*.aab
+
+# Firebase config (per-project; download from the Firebase console)
+app/google-services.json

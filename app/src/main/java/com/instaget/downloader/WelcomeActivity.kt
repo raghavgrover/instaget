@@ -3,6 +3,7 @@ package com.instaget.downloader
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -12,24 +13,31 @@ import androidx.core.view.updatePadding
 import com.instaget.downloader.databinding.ActivityWelcomeBinding
 
 /**
- * Shown once on the very first launch after install. The user must accept the
- * terms of use by tapping "Continue". A flag is persisted in SharedPreferences
- * so this screen is never shown again on the same install.
+ * Shown on the first launch after install, and again once whenever [TERMS_VERSION] is bumped
+ * (the privacy policy promises in-app notice before new SDKs are added). The user must accept
+ * by tapping "Continue"; the accepted version is persisted in SharedPreferences.
  */
 class WelcomeActivity : AppCompatActivity() {
 
     companion object {
         private const val PREFS = "welcome_prefs"
-        private const val KEY_TERMS_ACCEPTED = "terms_accepted"
+        private const val KEY_TERMS_ACCEPTED = "terms_accepted"   // v1: boolean, pre-1.7
+        private const val KEY_TERMS_VERSION = "terms_version"
 
-        /** True if the user has already accepted the terms on this install. */
-        fun isTermsAccepted(context: Context): Boolean =
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getBoolean(KEY_TERMS_ACCEPTED, false)
+        /** Bump when the terms/privacy policy change materially. 2 = Firebase + device check (v1.7). */
+        private const val TERMS_VERSION = 2
+
+        private fun acceptedVersion(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            return prefs.getInt(KEY_TERMS_VERSION, if (prefs.getBoolean(KEY_TERMS_ACCEPTED, false)) 1 else 0)
+        }
+
+        /** True if the user has accepted the current terms on this install. */
+        fun isTermsAccepted(context: Context): Boolean = acceptedVersion(context) >= TERMS_VERSION
 
         private fun markAccepted(context: Context) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putBoolean(KEY_TERMS_ACCEPTED, true).apply()
+                .edit().putBoolean(KEY_TERMS_ACCEPTED, true).putInt(KEY_TERMS_VERSION, TERMS_VERSION).apply()
         }
     }
 
@@ -57,6 +65,9 @@ class WelcomeActivity : AppCompatActivity() {
             insets
         }
         WindowInsetsControllerCompat(window, binding.root).isAppearanceLightStatusBars = false
+
+        // Existing users who accepted older terms see what changed.
+        if (acceptedVersion(this) > 0) binding.tvPolicyUpdate.visibility = View.VISIBLE
 
         binding.tvTerms.setOnClickListener {
             startActivity(

@@ -1,6 +1,7 @@
 package com.instaget.downloader.data
 
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -69,7 +70,7 @@ class InstagramScraper {
         return mediaIdToShortcode(mediaId)
     }
 
-    private fun mediaIdToShortcode(mediaId: String): String {
+    @VisibleForTesting internal fun mediaIdToShortcode(mediaId: String): String {
         var n = mediaId.toLong()
         var code = ""
         while (n > 0) {
@@ -225,7 +226,7 @@ class InstagramScraper {
         return Result.failure(Exception("Could not fetch story — it may have expired (stories last 24 hours)"))
     }
 
-    private fun flattenStoryResult(info: MediaInfo): MediaInfo {
+    @VisibleForTesting internal fun flattenStoryResult(info: MediaInfo): MediaInfo {
         if (info.mediaType != "carousel" || info.carouselItems.isEmpty()) return info
         val first = info.carouselItems.first()
         return info.copy(
@@ -269,7 +270,7 @@ class InstagramScraper {
         return parseResponse(responseText)
     }
 
-    private fun parseResponse(json: String): MediaInfo? {
+    @VisibleForTesting internal fun parseResponse(json: String): MediaInfo? {
         return try {
             val root = JSONObject(json)
             val data = root.optJSONObject("data") ?: return null
@@ -332,7 +333,7 @@ class InstagramScraper {
         return MediaInfo("", username, caption, mediaType, videoUrl, imageUrl, imageUrl, carouselItems)
     }
 
-    private fun parseItem(item: JSONObject): MediaInfo {
+    @VisibleForTesting internal fun parseItem(item: JSONObject): MediaInfo {
         val mediaTypeCode = item.optInt("media_type", 1)
         val username = item.optJSONObject("user")?.optString("username", "") ?: ""
         val caption = item.optJSONObject("caption")?.optString("text", "") ?: ""
