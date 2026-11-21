@@ -1,0 +1,5 @@
+• Fixed downloads that had stopped working for reels, photos and carousels
+• New name and icon: the app is now InstGet
+• Share links and /reels/ links are now supported
+• Carousel downloads now report clearly if an item fails
+• Refreshed Help guides
