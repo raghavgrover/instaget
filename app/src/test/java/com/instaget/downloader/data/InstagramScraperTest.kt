@@ -22,6 +22,14 @@ class InstagramScraperTest {
         assertEquals("Xy_z-9", scraper.extractShortcode("https://instagram.com/p/Xy_z-9/"))
         assertEquals("TVcode", scraper.extractShortcode("https://www.instagram.com/someuser/tv/TVcode/"))
         assertEquals("Q1w2", scraper.extractShortcode("https://www.instagram.com/someuser/p/Q1w2/"))
+        assertEquals("ABC123", scraper.extractShortcode("https://www.instagram.com/reels/ABC123/"))
+    }
+
+    @Test
+    fun extractShortcode_doesNotTreatShareTokensAsShortcodes() {
+        assertNull(scraper.extractShortcode("https://www.instagram.com/share/reel/BAtoken123/"))
+        assertNull(scraper.extractShortcode("https://www.instagram.com/share/p/BAtoken123/"))
+        assertNull(scraper.extractShortcode("https://www.instagram.com/share/BAtoken123/"))
     }
 
     @Test

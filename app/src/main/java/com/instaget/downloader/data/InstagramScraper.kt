@@ -46,7 +46,10 @@ class InstagramScraper {
             "10015901848480474"
         )
         private val SHORTCODE_REGEX =
-            Regex("""instagram\.com/(?:[^/]+/)?(?:reel|p|tv)/([A-Za-z0-9_-]+)""")
+            Regex("""instagram\.com/(?:[^/]+/)?(?:reels?|p|tv)/([A-Za-z0-9_-]+)""")
+        // App share links (instagram.com/share/reel/<token>/, /share/p/<token>/, /share/<token>/)
+        // carry an opaque token, not the shortcode — they redirect to the real post URL.
+        private val SHARE_REGEX = Regex("""instagram\.com/share/""")
         // stories/username/123456789/
         private val STORY_REGEX =
             Regex("""instagram\.com/stories/[^/?]+/(\d+)""")
@@ -71,6 +74,8 @@ class InstagramScraper {
         .build()
 
     fun extractShortcode(url: String): String? {
+        // A share token is not a shortcode; it has to be resolved over the network first
+        if (SHARE_REGEX.containsMatchIn(url)) return null
         SHORTCODE_REGEX.find(url)?.groupValues?.get(1)?.let { return it }
         // Story URLs encode the media as a numeric ID; convert to shortcode
         val mediaId = STORY_REGEX.find(url)?.groupValues?.get(1) ?: return null
@@ -122,7 +127,12 @@ class InstagramScraper {
         }
     }
 
-    suspend fun fetchMediaInfo(url: String): Result<MediaInfo> = withContext(Dispatchers.IO) {
+    suspend fun fetchMediaInfo(inputUrl: String): Result<MediaInfo> = withContext(Dispatchers.IO) {
+        val url = if (SHARE_REGEX.containsMatchIn(inputUrl)) {
+            resolveShareUrl(inputUrl)
+                ?: return@withContext Result.failure(Exception("Could not open this share link — copy the post link instead"))
+        } else inputUrl
+
         val storyMediaId = STORY_REGEX.find(url)?.groupValues?.get(1)
         if (storyMediaId != null) {
             return@withContext fetchStoryInfo(storyMediaId)
@@ -166,6 +176,29 @@ class InstagramScraper {
         }
 
         Result.failure(Exception("Could not fetch media — post may be private or Instagram changed their API"))
+    }
+
+    /** Follows a /share/ link's redirect and returns the real post URL, or null if it didn't resolve. */
+    private fun resolveShareUrl(shareUrl: String): String? {
+        val request = Request.Builder()
+            .url(shareUrl)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Sec-Fetch-Dest", "document")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Site", "none")
+            .build()
+        return try {
+            client.newCall(request).execute().use { response ->
+                val finalUrl = response.request.url.toString()
+                Log.d(TAG, "Share link resolved to $finalUrl (HTTP ${response.code})")
+                finalUrl.takeIf { !SHARE_REGEX.containsMatchIn(it) && extractShortcode(it) != null }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Share link resolve failed: ${e.message}")
+            null
+        }
     }
 
     private fun fetchFromPostPage(shortcode: String): MediaInfo? {
@@ -308,7 +341,7 @@ class InstagramScraper {
             } catch (_: Exception) {}
         }
 
-        return Result.failure(Exception("Could not fetch story — it may have expired (stories last 24 hours)"))
+        return Result.failure(Exception("Stories can't be downloaded right now — Instagram requires a login to view them"))
     }
 
     @VisibleForTesting internal fun flattenStoryResult(info: MediaInfo): MediaInfo {

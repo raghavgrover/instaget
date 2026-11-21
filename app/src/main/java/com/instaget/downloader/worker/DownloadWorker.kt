@@ -87,6 +87,7 @@ class DownloadWorker(
 
             if (!response.isSuccessful) {
                 Log.e(TAG, "Download failed: HTTP ${response.code}")
+                response.close()
                 return Result.failure(workDataOf("error" to "HTTP ${response.code}"))
             }
 
@@ -134,7 +135,7 @@ class DownloadWorker(
             }
 
             val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
-            if (notify) postNotification("FetchIn: Download complete", filename)
+            if (notify) postNotification("InstGet: Download complete", filename)
 
             Result.success(workDataOf(KEY_SAVED_URI to uriString))
         } catch (e: CancellationException) {
@@ -144,7 +145,7 @@ class DownloadWorker(
             Log.w(TAG, "DNS failure (attempt ${runAttemptCount + 1}): ${e.message}")
             if (runAttemptCount >= 2) {
                 val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
-                if (notify) postNotification("FetchIn: Download failed", "Network error — check your connection")
+                if (notify) postNotification("InstGet: Download failed", "Network error — check your connection")
                 Result.failure(workDataOf("error" to "Network error"))
             } else {
                 Result.retry()
@@ -152,7 +153,7 @@ class DownloadWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Download error", e)
             val notify = inputData.getBoolean(KEY_NOTIFY_ON_COMPLETE, false)
-            if (notify) postNotification("FetchIn: Download failed", e.message ?: "Unknown error")
+            if (notify) postNotification("InstGet: Download failed", e.message ?: "Unknown error")
             Result.failure(workDataOf("error" to (e.message ?: "Unknown error")))
         }
     }

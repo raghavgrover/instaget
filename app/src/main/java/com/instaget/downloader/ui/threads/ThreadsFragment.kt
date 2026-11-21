@@ -339,12 +339,14 @@ Go Premium to skip ads entirely and download without limits.
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
         val isPremium = BillingManager.getInstance(requireContext()).isUserSubscribed()
+        val batchTag = "batch_$timestamp"
 
         itemsToDownload.forEachIndexed { index, (url, filename, mediaType) ->
             val isLastItem = index == itemsToDownload.lastIndex
             val request = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
+                .addTag(batchTag)
                 .setInputData(
                     workDataOf(
                         DownloadWorker.KEY_MEDIA_URL to url,
@@ -366,41 +368,42 @@ Go Premium to skip ads entirely and download without limits.
                 .build()
 
             workManager.enqueue(request)
+        }
 
-            if (isLastItem) {
-                workManager.getWorkInfoByIdLiveData(request.id)
-                    .observe(viewLifecycleOwner) { workInfo ->
-                        if (workInfo == null) return@observe
-                        when (workInfo.state) {
-                            WorkInfo.State.RUNNING -> {
-                                val pct = workInfo.progress.getInt(DownloadWorker.KEY_PROGRESS, 0)
-                                binding.progressIndicator.progress = pct
-                                binding.tvStatus.text = "Downloading… $pct%"
-                            }
-                            WorkInfo.State.SUCCEEDED -> {
-                                binding.progressIndicator.visibility = View.GONE
-                                Analytics.downloadSucceeded(Analytics.PLATFORM_THREADS, info.mediaType, itemsToDownload.size)
-                                val total = itemsToDownload.size
-                                val msg = if (total > 1) "Saved $total files to DCIM/InstGet ✓"
-                                          else "Saved to DCIM/InstGet ✓"
-                                binding.tvStatus.visibility = View.VISIBLE
-                                binding.tvStatus.text = msg
-                                binding.etUrl.text?.clear()
-                                Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
-                                updateCreditsDisplay()
-                            }
-                            WorkInfo.State.FAILED -> {
-                                binding.progressIndicator.visibility = View.GONE
-                                val err = workInfo.outputData.getString("error") ?: "Download failed"
-                                Analytics.downloadFailed(Analytics.PLATFORM_THREADS, err)
-                                binding.tvStatus.visibility = View.VISIBLE
-                                binding.tvStatus.text = err
-                                Snackbar.make(binding.root, err, Snackbar.LENGTH_LONG).show()
-                            }
-                            else -> Unit
-                        }
-                    }
+        // Watch every item, not just the last one, so a failed carousel item is reported
+        // instead of being hidden behind a "Saved N files" message.
+        val total = itemsToDownload.size
+        var reported = false
+        workManager.getWorkInfosByTagLiveData(batchTag).observe(viewLifecycleOwner) { infos ->
+            if (reported || infos.size < total) return@observe
+            if (infos.any { !it.state.isFinished }) {
+                val pct = infos.sumOf {
+                    if (it.state.isFinished) 100 else it.progress.getInt(DownloadWorker.KEY_PROGRESS, 0)
+                } / total
+                binding.progressIndicator.progress = pct
+                binding.tvStatus.text = "Downloading… $pct%"
+                return@observe
             }
+            reported = true
+            binding.progressIndicator.visibility = View.GONE
+            binding.tvStatus.visibility = View.VISIBLE
+            val saved = infos.count { it.state == WorkInfo.State.SUCCEEDED }
+            val msg = when {
+                saved == total -> {
+                    Analytics.downloadSucceeded(Analytics.PLATFORM_THREADS, info.mediaType, total)
+                    binding.etUrl.text?.clear()
+                    if (total > 1) "Saved $total files to DCIM/InstGet ✓" else "Saved to DCIM/InstGet ✓"
+                }
+                else -> {
+                    val err = infos.firstOrNull { it.state == WorkInfo.State.FAILED }
+                        ?.outputData?.getString("error") ?: "Download failed"
+                    Analytics.downloadFailed(Analytics.PLATFORM_THREADS, err)
+                    if (saved == 0) err else "Saved $saved of $total files — ${total - saved} failed ($err)"
+                }
+            }
+            binding.tvStatus.text = msg
+            Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
+            updateCreditsDisplay()
         }
     }
 
