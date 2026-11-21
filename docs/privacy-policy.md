@@ -1,12 +1,12 @@
-# InstaGet — Privacy Policy
+# InstGet — Privacy Policy
 
-**Last updated: October 24, 2026** (app version 1.7) · Applies to InstaGet on Android and iOS
+**Last updated: October 24, 2026** (app version 1.7) · Applies to InstGet on Android and iOS
 
-> **Disclaimer:** InstaGet is an independent third-party app. It is not affiliated with, endorsed
+> **Disclaimer:** InstGet is an independent third-party app. It is not affiliated with, endorsed
 > by, or officially connected to Instagram, Threads, Meta Platforms, Inc., or any of their
 > affiliates. All related trademarks and copyrights belong to their respective owners.
 
-This Privacy Policy explains how InstaGet ("we", "us", or "the App") collects, uses, shares and
+This Privacy Policy explains how InstGet ("we", "us", or "the App") collects, uses, shares and
 protects information when you use the App. By using the App you agree to the practices described
 here.
 
@@ -118,12 +118,12 @@ account and device settings. Send requests to saanidhhyasoftwares@gmail.com; we 
 within 30 days or as required by law.
 
 ## 9. International users
-InstaGet is developed and operated from India. Our service providers (Google, Supabase) may
+InstGet is developed and operated from India. Our service providers (Google, Supabase) may
 process data in other countries, with safeguards provided by those providers. By using the App
 outside India, you understand that your information may be processed in other countries.
 
 ## 10. Content disclaimer and user responsibilities
-InstaGet provides tools to save publicly accessible media for personal, non-commercial use. You
+InstGet provides tools to save publicly accessible media for personal, non-commercial use. You
 are solely responsible for making sure that what you save and how you use it complies with
 copyright law, the terms of the platform it came from, and all applicable laws. Do not save or
 distribute content that infringes others' rights. We may restrict access for misuse.
@@ -134,6 +134,6 @@ will update the date above and show a notice in the App before the change applie
 example, the notice shown when version 1.7 introduced analytics and crash reporting).
 
 ## 12. Contact us
-InstaGet · saanidhhyasoftwares@gmail.com
+InstGet · saanidhhyasoftwares@gmail.com
 
-© 2026 InstaGet. All rights reserved.
+© 2026 InstGet. All rights reserved.

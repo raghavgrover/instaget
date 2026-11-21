@@ -1,4 +1,4 @@
-# Minimal Supabase CLI config for InstaGet. Run `supabase link --project-ref <ref>` first.
+# Minimal Supabase CLI config for InstGet. Run `supabase link --project-ref <ref>` first.
 project_id = "instaget"
 
 [functions.claim-credits]

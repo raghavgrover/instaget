@@ -179,16 +179,16 @@ class HomeFragment : Fragment() {
                     val url = item.videoUrl ?: item.imageUrl ?: return@mapIndexedNotNull null
                     val ext = if (item.mediaType == "video") "mp4" else "jpg"
                     val type = if (item.mediaType == "video") "VIDEO" else "IMAGE"
-                    Triple(url, "InstaGet_${timestamp}_${i + 1}.$ext", type)
+                    Triple(url, "InstGet_${timestamp}_${i + 1}.$ext", type)
                 }
             }
-            info.videoUrl != null -> listOf(Triple(info.videoUrl, "InstaGet_${timestamp}.mp4", "VIDEO"))
+            info.videoUrl != null -> listOf(Triple(info.videoUrl, "InstGet_${timestamp}.mp4", "VIDEO"))
             info.mediaType == "video" -> {
                 // Video identified but URL missing — don't silently download the thumbnail
                 Snackbar.make(binding.root, "Could not get video URL — Instagram may require login for this content", Snackbar.LENGTH_LONG).show()
                 return
             }
-            info.imageUrl != null -> listOf(Triple(info.imageUrl, "InstaGet_${timestamp}.jpg", "IMAGE"))
+            info.imageUrl != null -> listOf(Triple(info.imageUrl, "InstGet_${timestamp}.jpg", "IMAGE"))
             else -> {
                 Snackbar.make(binding.root, "No downloadable URL found", Snackbar.LENGTH_LONG).show()
                 return
@@ -247,9 +247,9 @@ class HomeFragment : Fragment() {
                                 Analytics.downloadSucceeded(Analytics.PLATFORM_INSTAGRAM, info.mediaType, itemsToDownload.size)
                                 val totalCount = itemsToDownload.size
                                 val msg = if (totalCount > 1)
-                                    "Saved $totalCount files to DCIM/InstaGet ✓"
+                                    "Saved $totalCount files to DCIM/InstGet ✓"
                                 else
-                                    "Saved to DCIM/InstaGet ✓"
+                                    "Saved to DCIM/InstGet ✓"
                                 binding.tvStatus.visibility = View.VISIBLE
                                 binding.tvStatus.text = msg
                                 binding.etUrl.text?.clear()

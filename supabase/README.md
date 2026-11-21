@@ -1,4 +1,4 @@
-# InstaGet backend (Supabase)
+# InstGet backend (Supabase)
 
 One job: remember which devices already received the 10 free download credits, so clearing
 app data or reinstalling can't re-grant them.

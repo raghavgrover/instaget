@@ -381,8 +381,8 @@ Go Premium to skip ads entirely and download without limits.
                                 binding.progressIndicator.visibility = View.GONE
                                 Analytics.downloadSucceeded(Analytics.PLATFORM_THREADS, info.mediaType, itemsToDownload.size)
                                 val total = itemsToDownload.size
-                                val msg = if (total > 1) "Saved $total files to DCIM/InstaGet ✓"
-                                          else "Saved to DCIM/InstaGet ✓"
+                                val msg = if (total > 1) "Saved $total files to DCIM/InstGet ✓"
+                                          else "Saved to DCIM/InstGet ✓"
                                 binding.tvStatus.visibility = View.VISIBLE
                                 binding.tvStatus.text = msg
                                 binding.etUrl.text?.clear()
@@ -427,7 +427,7 @@ Go Premium to skip ads entirely and download without limits.
                         val values = ContentValues().apply {
                             put(MediaStore.Downloads.DISPLAY_NAME, filename)
                             put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-                            put(MediaStore.Downloads.RELATIVE_PATH, "Download/InstaGet")
+                            put(MediaStore.Downloads.RELATIVE_PATH, "Download/InstGet")
                         }
                         val uri = requireContext().contentResolver
                             .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
@@ -443,7 +443,7 @@ Go Premium to skip ads entirely and download without limits.
                     } else {
                         val dir = File(
                             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                            "InstaGet"
+                            "InstGet"
                         ).also { it.mkdirs() }
                         val file = File(dir, filename)
                         FileOutputStream(file).use { it.write(content.toByteArray()) }
@@ -458,7 +458,7 @@ Go Premium to skip ads entirely and download without limits.
             if (savedPath != null) {
                 // Save to Library so it appears in the Downloads tab
                 viewModel.saveTextPostToLibrary(info, savedPath)
-                Snackbar.make(binding.root, "Saved to Downloads/InstaGet ✓", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "Saved to Downloads/InstGet ✓", Snackbar.LENGTH_LONG).show()
                 binding.etUrl.text?.clear()
             } else {
                 Snackbar.make(binding.root, "Failed to save file", Snackbar.LENGTH_LONG).show()

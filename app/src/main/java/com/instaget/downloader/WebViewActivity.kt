@@ -43,7 +43,7 @@ class WebViewActivity : AppCompatActivity() {
         WindowInsetsControllerCompat(window, binding.root).isAppearanceLightStatusBars = false
 
         val url   = intent.getStringExtra(EXTRA_URL)   ?: ""
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: "InstaGet"
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: "InstGet"
 
         // Toolbar setup
         binding.tvTitle.text = title

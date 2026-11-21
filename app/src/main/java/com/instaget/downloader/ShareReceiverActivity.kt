@@ -74,7 +74,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                     putExtra("navigate_to", navigateTo)
                 }
             )
-            Toast.makeText(this@ShareReceiverActivity, "InstaGet: Opening download…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@ShareReceiverActivity, "InstGet: Opening download…", Toast.LENGTH_SHORT).show()
             finish()
         }
     }

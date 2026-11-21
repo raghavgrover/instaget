@@ -77,7 +77,7 @@ class DownloadWorker(
     override suspend fun doWork(): Result {
         val mediaUrl = inputData.getString(KEY_MEDIA_URL)
             ?: return Result.failure(workDataOf("error" to "No URL provided"))
-        val filename = inputData.getString(KEY_FILENAME) ?: "InstaGet_${System.currentTimeMillis()}"
+        val filename = inputData.getString(KEY_FILENAME) ?: "InstGet_${System.currentTimeMillis()}"
 
         return try {
             setProgress(workDataOf(KEY_PROGRESS to 0))
@@ -196,7 +196,7 @@ class DownloadWorker(
         contentLength: Long
     ): Uri? {
         val mimeType = if (isVideo) "video/mp4" else "image/jpeg"
-        val relativePath = "DCIM/InstaGet"
+        val relativePath = "DCIM/InstGet"
         val collection = if (isVideo)
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         else
@@ -248,7 +248,7 @@ class DownloadWorker(
     ): Uri? {
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-            "InstaGet"
+            "InstGet"
         )
         dir.mkdirs()
         val file = File(dir, filename)
