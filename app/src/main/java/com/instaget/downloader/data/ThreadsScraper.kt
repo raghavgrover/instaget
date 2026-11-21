@@ -143,7 +143,21 @@ class ThreadsScraper {
                     Exception("Could not parse post — it may be private or Threads blocked the request")
                 )
 
-            val enriched = tryEnrichCarousel(html, info).copy(sessionCookies = cookies)
+            // A video post's thumbnail shares its CDN bucket with images elsewhere on the page,
+            // which tryEnrichCarousel would mistake for a carousel — so check the post's own
+            // SSR entry first and only guess at a carousel when it isn't a video.
+            val ownVideo = if (info.videoUrl == null) extractOwnPostVideo(html, postId) else null
+            val detected = if (ownVideo != null) {
+                info.copy(
+                    mediaType = "video",
+                    videoUrl = ownVideo,
+                    videoThumbnailUrl = info.imageUrls.firstOrNull(),
+                    imageUrls = emptyList()
+                )
+            } else {
+                tryEnrichCarousel(html, info)
+            }
+            val enriched = detected.copy(sessionCookies = cookies)
 
             val final = if (enriched.videoUrl == null && enriched.mediaType != "text" && enriched.mediaType != "carousel") {
                 tryFetchVideo(html, postId, numericMediaId, lsdToken, dynamicDocIds, enriched)
@@ -268,6 +282,27 @@ class ThreadsScraper {
         }
 
         return null
+    }
+
+    /**
+     * Returns this post's video URL if the post's own SSR entry says it's a video
+     * (`"code":"<postId>",…,"media_type":2`). Unlike [extractVideoFromSsrData], this never picks up
+     * videos from other posts on the page: the search stops at the next post's `"code"`.
+     */
+    @VisibleForTesting internal fun extractOwnPostVideo(html: String, postId: String): String? {
+        val entry = Regex(""""code"\s*:\s*"${Regex.escape(postId)}"[^{}]{0,300}?"media_type"\s*:\s*(\d+)""")
+            .find(html) ?: return null
+        if (entry.groupValues[1] != "2") return null
+
+        val start = entry.range.last
+        val nextPost = html.indexOf("\"code\":\"", start).let { if (it < 0) html.length else it }
+        val versions = html.indexOf("\"video_versions\":[", start)
+        if (versions < 0 || versions >= nextPost) return null
+
+        val urlMatch = Regex(""""url"\s*:\s*"(https:[^"]+\.mp4[^"]*?)"""")
+            .find(html.substring(versions, minOf(nextPost, versions + 3000))) ?: return null
+        val url = urlMatch.groupValues[1].replace("\\/", "/").replace("&amp;", "&")
+        return url.takeIf { it.contains("cdninstagram.com") || it.contains("fbcdn.net") }
     }
 
     // ── GraphQL request ─────────────────────────────────────────────────────────

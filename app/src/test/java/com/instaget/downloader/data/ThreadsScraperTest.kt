@@ -178,4 +178,46 @@ class ThreadsScraperTest {
 
         assertEquals(base, scraper.applyVideoFromJson("""{"data":null}""", base))
     }
+
+    // Trimmed from the real structure of a Threads video post page, with fake URLs.
+    private fun ssrPost(code: String, mediaType: Int, videoVersions: String) =
+        """"carousel_media":null,"code":"$code","accessibility_caption":null,"media_type":$mediaType,""" +
+            """"image_versions2":{"candidates":[{"url":"https:\/\/scontent.cdninstagram.com\/v\/t51.71878-15\/$code.jpg","height":320}]},""" +
+            """"video_versions":$videoVersions,"""
+
+    private fun mp4(name: String) =
+        """[{"type":101,"url":"https:\/\/instagram.fdel1-5.fna.fbcdn.net\/o1\/v\/t2\/f2\/m86\/$name.mp4?a=1&amp;b=2"}]"""
+
+    @Test
+    fun extractOwnPostVideo_returnsThisPostsVideo() {
+        val html = ssrPost("OTHER", 2, mp4("other")) + ssrPost("MINE", 2, mp4("mine")) + ssrPost("NEXT", 2, mp4("next"))
+        assertEquals(
+            "https://instagram.fdel1-5.fna.fbcdn.net/o1/v/t2/f2/m86/mine.mp4?a=1&b=2",
+            scraper.extractOwnPostVideo(html, "MINE")
+        )
+    }
+
+    @Test
+    fun extractOwnPostVideo_ignoresNonVideoPostsAndOtherPostsVideos() {
+        // Photo post followed by someone else's video: must not borrow that video
+        val photo = ssrPost("MINE", 1, "null") + ssrPost("NEXT", 2, mp4("next"))
+        assertNull(scraper.extractOwnPostVideo(photo, "MINE"))
+
+        // Real carousel: stays with carousel handling
+        val carousel = ssrPost("MINE", 8, "null") + ssrPost("NEXT", 2, mp4("next"))
+        assertNull(scraper.extractOwnPostVideo(carousel, "MINE"))
+
+        // Marked as video but its own URL is missing: don't take the next post's
+        val noUrl = ssrPost("MINE", 2, "null") + ssrPost("NEXT", 2, mp4("next"))
+        assertNull(scraper.extractOwnPostVideo(noUrl, "MINE"))
+
+        // Post not on the page at all
+        assertNull(scraper.extractOwnPostVideo(ssrPost("OTHER", 2, mp4("other")), "MINE"))
+    }
+
+    @Test
+    fun extractOwnPostVideo_rejectsNonCdnUrls() {
+        val html = """"code":"MINE","media_type":2,"video_versions":[{"url":"https://example.com/x.mp4"}],"""
+        assertNull(scraper.extractOwnPostVideo(html, "MINE"))
+    }
 }
