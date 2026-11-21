@@ -330,6 +330,15 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/disclaimer_not_affiliated"
+                android:textColor="@color/textSecondary"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="16dp" />
+
         </LinearLayout>
 
     </ScrollView>

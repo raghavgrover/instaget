@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">InstGet - IG Downloader</string>
+    <string name="app_name">InstGet - Video &amp; Photo Saver</string>
     <string name="app_short_name">InstGet</string>
+    <string name="disclaimer_not_affiliated">InstGet is an independent app. It is not affiliated with, endorsed or sponsored by Instagram, Threads or Meta.</string>
     <string name="tagline">Save media from Instagram and Threads</string>
     <string name="nav_home">Home</string>
     <string name="nav_threads">Threads</string>
@@ -56,6 +57,6 @@
     <string name="label_ongoing_offer">Subscription auto-renews unless cancelled</string>
     <string name="label_carousel_snackbar">Subscribe to download all %1$d items in this carousel.</string>
     <string name="label_paste">Paste</string>
-    <string name="label_download_instagram_media">Download Instagram Media</string>
-    <string name="label_supported_types">Photos • Videos • Reels • Stories • Carousels</string>
+    <string name="label_download_instagram_media">Download Photos &amp; Videos</string>
+    <string name="label_supported_types">Photos • Videos • Reels • Carousels</string>
 </resources>
