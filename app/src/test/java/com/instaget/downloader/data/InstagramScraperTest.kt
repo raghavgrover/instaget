@@ -156,4 +156,56 @@ class InstagramScraperTest {
         val image = carousel.copy(mediaType = "image", carouselItems = emptyList())
         assertEquals(image, scraper.flattenStoryResult(image))
     }
+
+    // ---- Post page (embedded JSON) -------------------------------------------------
+
+    private fun postPage(mediaJson: String) = """
+        <html><head><script type="application/json" data-sjs>{"require":[["x",null,null,[{"__bbox":{"other":"CODE1"}}]]]}</script>
+        <script type="application/json" data-content-len="10" data-sjs>
+        {"require":[["ScheduledServerJS","handle",null,[{"__bbox":{"require":[["RelayPrefetchedStreamCache","next",[],
+        ["q",{"__bbox":{"result":{"data":{"xig_polaris_media":{"if_not_gated_logged_out":$mediaJson}}}}}]]]}}]]]}
+        </script></head><body></body></html>
+    """.trimIndent()
+
+    @Test
+    fun parsePostPage_video() {
+        val html = postPage("""
+            {"code":"CODE1","pk":"1","media_type":2,"user":{"username":"creator"},
+             "caption":{"text":"hello"},
+             "image_versions2":{"candidates":[{"url":"https://cdn.example/thumb.jpg"}]},
+             "video_versions":[{"type":101,"url":"https://cdn.example/video.mp4?a=1&b=2"}]}
+        """)
+        val info = scraper.parsePostPage(html, "CODE1")!!
+        assertEquals("video", info.mediaType)
+        assertEquals("https://cdn.example/video.mp4?a=1&b=2", info.videoUrl)
+        assertEquals("https://cdn.example/thumb.jpg", info.thumbnailUrl)
+        assertEquals("creator", info.username)
+        assertEquals("hello", info.caption)
+    }
+
+    @Test
+    fun parsePostPage_carouselIgnoresChildCodes() {
+        val html = postPage("""
+            {"code":"CODE1","media_type":8,"user":{"username":"creator"},"caption":null,
+             "image_versions2":{"candidates":[{"url":"https://cdn.example/cover.jpg"}]},
+             "carousel_media":[
+               {"code":"CHILD1","media_type":1,"image_versions2":{"candidates":[{"url":"https://cdn.example/1.jpg"}]}},
+               {"code":"CHILD2","media_type":2,"image_versions2":{"candidates":[{"url":"https://cdn.example/2.jpg"}]},
+                "video_versions":[{"url":"https://cdn.example/2.mp4"}]}]}
+        """)
+        val info = scraper.parsePostPage(html, "CODE1")!!
+        assertEquals("carousel", info.mediaType)
+        assertEquals(2, info.carouselItems.size)
+        assertEquals("https://cdn.example/1.jpg", info.carouselItems[0].imageUrl)
+        assertEquals("video", info.carouselItems[1].mediaType)
+        assertEquals("https://cdn.example/2.mp4", info.carouselItems[1].videoUrl)
+    }
+
+    @Test
+    fun parsePostPage_returnsNullWhenMediaNotEmbedded() {
+        // Login-wall / shell page: shortcode appears but no media object
+        val html = """<script type="application/json">{"a":{"shortcode":"CODE1"}}</script>"""
+        assertNull(scraper.parsePostPage(html, "CODE1"))
+        assertNull(scraper.parsePostPage(postPage("""{"code":"OTHER","image_versions2":{"candidates":[]}}"""), "CODE1"))
+    }
 }

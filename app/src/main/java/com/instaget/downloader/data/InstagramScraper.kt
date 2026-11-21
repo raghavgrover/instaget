@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -33,6 +34,12 @@ class InstagramScraper {
         private const val TAG = "InstagramScraper"
         private const val GRAPHQL_URL = "https://www.instagram.com/graphql/query"
         private const val HOME_URL = "https://www.instagram.com/"
+        private const val POST_PAGE_URL = "https://www.instagram.com/p/%s/"
+        // Server-rendered data blobs on the post page
+        private val JSON_SCRIPT_REGEX = Regex(
+            """<script type="application/json"[^>]*>(.*?)</script>""",
+            RegexOption.DOT_MATCHES_ALL
+        )
         private val DOC_IDS = listOf(
             "8845758582119845",
             "24368985919464652",
@@ -126,6 +133,19 @@ class InstagramScraper {
 
         Log.d(TAG, "Shortcode: $shortcode")
 
+        // Primary: the public post page embeds the full media JSON for logged-out
+        // visitors. The anonymous GraphQL doc_ids below now answer 401 require_login,
+        // so they are only kept as a fallback.
+        try {
+            val result = fetchFromPostPage(shortcode)
+            if (result != null) {
+                Log.d(TAG, "Got result from post page")
+                return@withContext Result.success(result.copy(shortcode = shortcode))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Post page fetch failed: ${e.message}")
+        }
+
         val csrfToken = fetchCsrfToken()
         if (csrfToken == null) {
             Log.w(TAG, "No CSRF token obtained, proceeding anyway")
@@ -146,6 +166,71 @@ class InstagramScraper {
         }
 
         Result.failure(Exception("Could not fetch media — post may be private or Instagram changed their API"))
+    }
+
+    private fun fetchFromPostPage(shortcode: String): MediaInfo? {
+        // Instagram only server-renders the media into the page for real browser
+        // navigations: without the Sec-Fetch-* headers it returns an empty shell.
+        val request = Request.Builder()
+            .url(POST_PAGE_URL.format(shortcode))
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Sec-Fetch-Dest", "document")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Site", "none")
+            .header("Sec-Fetch-User", "?1")
+            .header("Upgrade-Insecure-Requests", "1")
+            .build()
+        val html = client.newCall(request).execute().use { response ->
+            Log.d(TAG, "Post page: HTTP ${response.code}")
+            if (!response.isSuccessful) return null
+            response.body?.string() ?: return null
+        }
+        return parsePostPage(html, shortcode)
+    }
+
+    /**
+     * Pulls the media out of the post page's embedded JSON. The object sits deep inside a
+     * Relay preload blob whose path changes between page variants, so rather than follow a
+     * fixed path we search every JSON script for the object whose "code" is our shortcode.
+     * That object has the same shape as the media-info API item, so [parseItem] reads it.
+     */
+    @VisibleForTesting internal fun parsePostPage(html: String, shortcode: String): MediaInfo? {
+        val needle = "\"$shortcode\""
+        for (match in JSON_SCRIPT_REGEX.findAll(html)) {
+            val json = match.groupValues[1]
+            if (!json.contains(needle)) continue
+            if (!json.contains("image_versions2") && !json.contains("video_versions")) continue
+            try {
+                val item = findMediaItem(JSONObject(json), shortcode) ?: continue
+                val info = parseItem(item)
+                if (info.videoUrl == null && info.imageUrl == null && info.carouselItems.isEmpty()) continue
+                return info
+            } catch (e: Exception) {
+                Log.w(TAG, "Post page JSON parse error: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun findMediaItem(node: Any?, shortcode: String): JSONObject? {
+        when (node) {
+            is JSONObject -> {
+                if (node.optString("code") == shortcode &&
+                    (node.has("image_versions2") || node.has("video_versions") || node.has("carousel_media"))
+                ) return node
+                for (key in node.keys()) {
+                    findMediaItem(node.opt(key), shortcode)?.let { return it }
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) {
+                    findMediaItem(node.opt(i), shortcode)?.let { return it }
+                }
+            }
+        }
+        return null
     }
 
     private fun fetchStoryInfo(mediaId: String): Result<MediaInfo> {
